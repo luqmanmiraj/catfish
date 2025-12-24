@@ -177,6 +177,54 @@ const AboutScreen = ({ onScanClick, onHistoryClick, onProfileClick }) => {
           </TouchableOpacity>
         </View>
 
+        {/* Disclaimer */}
+        <View style={aboutStyles.card}>
+          <Text style={aboutStyles.cardTitle}>Disclaimer</Text>
+          <Text style={aboutStyles.cardBody}>
+            This application is a verification and risk-reduction tool only. It does not guarantee the identity, intent, or behavior of any person.
+          </Text>
+          <Text style={aboutStyles.cardBody}>
+            The application does not perform background checks, criminal history checks, or access law-enforcement or government databases.
+          </Text>
+          <Text style={aboutStyles.cardBody}>
+            Users are solely responsible for their own decisions and interactions. The application and its operators are not responsible for any outcomes resulting from use of the service.
+          </Text>
+          <Text style={aboutStyles.cardBody}>
+            By using the application, you confirm that you have the right and consent to submit any images, videos, or information provided.
+          </Text>
+          <Text style={aboutStyles.cardBody}>
+            Submitted data is used solely for verification purposes and is handled in accordance with the application's privacy practices.
+          </Text>
+        </View>
+
+        {/* Support */}
+        <View style={aboutStyles.card}>
+          <Text style={aboutStyles.cardTitle}>Need help?</Text>
+          <Text style={aboutStyles.cardBody}>
+            Please contact us at support@catfishcrasher.com.
+          </Text>
+          <Text style={aboutStyles.cardBody}>
+            We typically respond within 24 hours.
+          </Text>
+        </View>
+
+        {/* Refund Policy */}
+        <View style={aboutStyles.card}>
+          <Text style={aboutStyles.cardTitle}>Refund Policy</Text>
+          <Text style={aboutStyles.cardBody}>
+            If you believe there was an issue with your purchase, please contact us at support@catfishcrasher.com.
+          </Text>
+          <Text style={aboutStyles.cardBody}>
+            Refunds are reviewed on a case-by-case basis, typically for unused or minimally used scans. Purchases made through the Apple App Store are subject to Apple's refund policies.
+          </Text>
+          <Text style={aboutStyles.cardBody}>
+            Refund requests may be submitted directly through Apple or reviewed by our team where applicable.
+          </Text>
+          <Text style={aboutStyles.cardBody}>
+            We reserve the right to deny refund requests in cases of excessive or completed usage.
+          </Text>
+        </View>
+
         {/* Footer */}
         <View style={aboutStyles.footer}>
           <Text style={aboutStyles.footerText}>Version 1.0.0</Text>
