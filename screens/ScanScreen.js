@@ -21,15 +21,15 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
   const getHeaderText = () => {
     if (isAuthenticated && userDisplayName) {
       // Show logged-in status with scan count
-      const scanText = scansRemaining === Infinity ? 'Unlimited' : `${scansRemaining} scans`;
+      const scanText = scansRemaining > 0 ? `Scans left: ${scansRemaining}` : 'No scans left';
       return `${userDisplayName} • ${scanText}`;
     } else if (isAuthenticated) {
       // Just show logged-in status with scan count
-      const scanText = scansRemaining === Infinity ? 'Unlimited scans' : `${scansRemaining} scans remaining`;
+      const scanText = scansRemaining > 0 ? `Scans left: ${scansRemaining}` : 'No scans left';
       return `Logged in • ${scanText}`;
     } else {
       // Not logged in, show scan count
-      return scansRemaining === Infinity ? 'Unlimited scans' : `${scansRemaining} scans remaining`;
+      return scansRemaining > 0 ? `Scans left: ${scansRemaining}` : 'No scans left';
     }
   };
   

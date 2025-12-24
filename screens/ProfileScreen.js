@@ -8,9 +8,10 @@ import { useSubscription } from '../context/SubscriptionContext';
 import { profileStyles } from '../styles';
 import colors from '../colors';
 
-const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, onLogOut, onDeleteAccount, onManageSubscription, isPro }) => {
+const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, onLogOut, onDeleteAccount, onManageSubscription }) => {
   const insets = useSafeAreaInsets();
   const { user, isAuthenticated } = useAuth();
+  const { scansRemaining, tokenBalance } = useSubscription();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   
   // Check if user is a guest
@@ -47,59 +48,36 @@ const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, o
               </Text>
               <View style={profileStyles.statsRow}>
                 <View style={profileStyles.statItem}>
-                  <Text style={profileStyles.statNumber}>3</Text>
-                  <Text style={profileStyles.statLabel}>Scans Completed</Text>
+                  <Text style={profileStyles.statNumber}>{scansRemaining || 0}</Text>
+                  <Text style={profileStyles.statLabel}>Scans Left</Text>
                 </View>
                 <View style={profileStyles.statItem}>
-                  <Text style={profileStyles.statNumber}>3</Text>
-                  <Text style={profileStyles.statLabel}>Scan Limit</Text>
+                  <Text style={profileStyles.statNumber}>{tokenBalance || 0}</Text>
+                  <Text style={profileStyles.statLabel}>Token Balance</Text>
                 </View>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Upgrade Subscription Card or Manage Subscription */}
-        {isPro ? (
-          <View style={profileStyles.upgradeCard}>
-            <Text style={profileStyles.priceText}>
-              <Text style={profileStyles.crownIcon}>👑</Text>
-              <Text style={profileStyles.priceAmount}> Catfish Pro</Text>
-            </Text>
-            <Text style={[profileStyles.upgradeTerms, { marginBottom: 12 }]}>
-              You have an active subscription
-            </Text>
-            {onManageSubscription && (
-              <TouchableOpacity
-                style={[profileStyles.upgradeButton, { backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.primary }]}
-                onPress={onManageSubscription}
-                activeOpacity={0.8}
-              >
-                <Text style={[profileStyles.upgradeButtonText, { color: colors.primary }]}>
-                  Manage Subscription
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          <View style={profileStyles.upgradeCard}>
-            <Text style={profileStyles.priceText}>
-              <Text style={profileStyles.dollarSign}>Starting at $</Text>
-              <Text style={profileStyles.priceAmount}>4.99</Text>
-            </Text>
-            <TouchableOpacity
-              style={profileStyles.upgradeButton}
-              onPress={onUpgrade}
-              activeOpacity={0.8}
-            >
-              <Text style={profileStyles.crownIcon}>👑</Text>
-              <Text style={profileStyles.upgradeButtonText}>Upgrade Now</Text>
-            </TouchableOpacity>
-            <Text style={profileStyles.upgradeTerms}>
-              Basic $4.99 • Premium $9.99/month • Lifetime $24.99
-            </Text>
-          </View>
-        )}
+        {/* Purchase Scan Packs Card */}
+        <View style={profileStyles.upgradeCard}>
+          <Text style={profileStyles.priceText}>
+            <Text style={profileStyles.dollarSign}>Starting at $</Text>
+            <Text style={profileStyles.priceAmount}>4.99</Text>
+          </Text>
+          <TouchableOpacity
+            style={profileStyles.upgradeButton}
+            onPress={onUpgrade}
+            activeOpacity={0.8}
+          >
+            <Text style={profileStyles.crownIcon}>💰</Text>
+            <Text style={profileStyles.upgradeButtonText}>Purchase Scans</Text>
+          </TouchableOpacity>
+          <Text style={profileStyles.upgradeTerms}>
+            5 Scans $4.99 • 20 Scans $14.99 • 50 Scans $29.99
+          </Text>
+        </View>
 
         {/* Settings Card */}
         <View style={profileStyles.card}>

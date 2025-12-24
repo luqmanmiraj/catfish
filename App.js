@@ -29,12 +29,16 @@ function AppContent() {
   const { isAuthenticated, isLoading, signOut, user, guestSignUp } = useAuth();
   const { 
     purchaseSubscription, 
+    purchaseTokenPack,
     getAvailablePackages, 
     refreshSubscriptionStatus,
     presentPaywall,
     presentCustomerCenter,
     restorePurchases,
-    isPro,
+    checkCanScan,
+    decrementToken,
+    scansRemaining,
+    tokenBalance,
   } = useSubscription();
   const [showPermissions, setShowPermissions] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
@@ -209,7 +213,28 @@ function AppContent() {
     }
   };
 
-  const handleTapToScan = () => {
+  const handleTapToScan = async () => {
+    // Check if user has tokens before allowing scan
+    if (isAuthenticated) {
+      try {
+        const canScanResult = await checkCanScan();
+        if (!canScanResult.canScan || canScanResult.scansRemaining <= 0) {
+          Alert.alert(
+            'No Scans Remaining',
+            'You have no scans left. Please purchase a scan pack to continue.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Purchase Scans', onPress: () => setShowPaywall(true) },
+            ]
+          );
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking scan eligibility:', error);
+        // Continue with scan attempt if check fails
+      }
+    }
+    
     setShowCameraScan(true);
   };
 
@@ -224,9 +249,22 @@ function AppContent() {
     setShowAnalysis(true);
   };
 
-  const handleAnalysisComplete = (result) => {
+  const handleAnalysisComplete = async (result) => {
     setAnalysisResult(result);
     console.log('Analysis complete - showing results screen');
+    
+    // Decrement token after successful scan (if authenticated)
+    if (isAuthenticated && result) {
+      try {
+        await decrementToken();
+        // Refresh token balance to ensure sync
+        await refreshSubscriptionStatus();
+      } catch (error) {
+        console.error('Error decrementing token:', error);
+        // Continue even if token decrement fails - scan was successful
+      }
+    }
+    
     setShowAnalysis(false);
     setShowResults(true);
     // Reset other screen states
@@ -424,7 +462,6 @@ function AppContent() {
           onLogOut={handleLogOut}
           onDeleteAccount={handleDeleteAccount}
           onManageSubscription={handleManageSubscription}
-          isPro={isPro}
         />
       );
     }

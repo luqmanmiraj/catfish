@@ -78,12 +78,12 @@ export async function checkCanScan(accessToken, userId = null) {
 }
 
 /**
- * Increment scan count after successful scan
+ * Decrement token after successful scan
  */
-export async function incrementScanCount(accessToken, userId = null) {
+export async function decrementToken(accessToken, userId = null) {
   try {
     const body = userId ? { userId } : {};
-    const url = `${API_BASE_URL}/subscription/increment`;
+    const url = `${API_BASE_URL}/subscription/decrement`;
     // Log device info before request
     await logDeviceMetadata(null, url);
     
@@ -103,7 +103,38 @@ export async function incrementScanCount(accessToken, userId = null) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error incrementing scan count:', error);
+    console.error('Error decrementing token:', error);
+    throw error;
+  }
+}
+
+/**
+ * Purchase token pack
+ */
+export async function purchaseTokenPack(accessToken, packId, transactionId = null) {
+  try {
+    const body = { packId, transactionId };
+    const url = `${API_BASE_URL}/subscription/purchase`;
+    // Log device info before request
+    await logDeviceMetadata(null, url);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error purchasing token pack:', error);
     throw error;
   }
 }

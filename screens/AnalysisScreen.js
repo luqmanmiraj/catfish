@@ -58,8 +58,8 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
           useNativeDriver: false,
         }).start();
 
-        // Call Lambda endpoint
-        const lambdaEndpoint = `${apiConfig.API_BASE_URL}/analyze`;
+        // Call Lambda endpoint (configurable: 'analyze' or 'gowinston/detect')
+        const lambdaEndpoint = `${apiConfig.API_BASE_URL}/${apiConfig.ANALYSIS_ENDPOINT || 'gowinston/detect'}`;
         // Log device info before request
         await logDeviceMetadata(null, lambdaEndpoint);
         

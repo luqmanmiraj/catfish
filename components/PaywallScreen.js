@@ -15,18 +15,25 @@ import colors from '../colors';
 
 /**
  * PaywallScreen Component
- * Displays subscription options (Monthly, Yearly, Lifetime) with RevenueCat Paywall UI option
+ * Displays token pack options (5, 20, 50 scans) with RevenueCat Paywall UI option
  */
 export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore }) {
   const [packages, setPackages] = useState([]);
   const [packagesByType, setPackagesByType] = useState({
-    basic: null,
-    premium_monthly: null,
-    lifetime: null,
+    pack_5: null,
+    pack_20: null,
+    pack_50: null,
   });
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  
+  // Token pack configurations
+  const TOKEN_PACKS = {
+    pack_5: { tokens: 5, price: 4.99, name: '5 Scans' },
+    pack_20: { tokens: 20, price: 14.99, name: '20 Scans' },
+    pack_50: { tokens: 50, price: 29.99, name: '50 Scans' },
+  };
 
   useEffect(() => {
     loadPackages();
@@ -41,15 +48,34 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       ]);
 
       setPackages(allPackages);
-      setPackagesByType(byType);
+      
+      // Map packages to token pack types
+      const tokenPackages = {
+        pack_5: null,
+        pack_20: null,
+        pack_50: null,
+      };
+      
+      allPackages.forEach(pkg => {
+        const identifier = (pkg.identifier || pkg.storeProduct?.identifier || '').toLowerCase();
+        if (identifier.includes('pack_5') || identifier.includes('5') || identifier.includes('five')) {
+          tokenPackages.pack_5 = pkg;
+        } else if (identifier.includes('pack_20') || identifier.includes('20') || identifier.includes('twenty')) {
+          tokenPackages.pack_20 = pkg;
+        } else if (identifier.includes('pack_50') || identifier.includes('50') || identifier.includes('fifty')) {
+          tokenPackages.pack_50 = pkg;
+        }
+      });
+      
+      setPackagesByType(tokenPackages);
 
-      // Auto-select premium_monthly if available, otherwise basic, then lifetime
-      if (byType.premium_monthly) {
-        setSelectedPackage(byType.premium_monthly);
-      } else if (byType.basic) {
-        setSelectedPackage(byType.basic);
-      } else if (byType.lifetime) {
-        setSelectedPackage(byType.lifetime);
+      // Auto-select pack_20 if available (best value), otherwise pack_5, then pack_50
+      if (tokenPackages.pack_20) {
+        setSelectedPackage(tokenPackages.pack_20);
+      } else if (tokenPackages.pack_5) {
+        setSelectedPackage(tokenPackages.pack_5);
+      } else if (tokenPackages.pack_50) {
+        setSelectedPackage(tokenPackages.pack_50);
       } else if (allPackages.length > 0) {
         setSelectedPackage(allPackages[0]);
       }
@@ -75,18 +101,13 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       const hasPro = customerInfo.entitlements.active[RevenueCatService.CATFISH_PRO_ENTITLEMENT] || 
                      customerInfo.entitlements.active[RevenueCatService.TEKJIN_PRO_ENTITLEMENT];
       
-      if (hasPro) {
-        Alert.alert('Success', 'Welcome to Catfish Pro! You now have unlimited access.', [
-          { text: 'OK', onPress: () => {
-            onPurchaseSuccess?.();
-            onClose?.();
-          }},
-        ]);
-      } else {
-        Alert.alert('Purchase Complete', 'Your subscription is being processed.');
-        onPurchaseSuccess?.();
-        onClose?.();
-      }
+      // Token pack purchase completed
+      Alert.alert('Purchase Complete', 'Your scan pack has been added to your account!', [
+        { text: 'OK', onPress: () => {
+          onPurchaseSuccess?.();
+          onClose?.();
+        }},
+      ]);
     } catch (error) {
       console.error('Purchase error:', error);
       
@@ -225,27 +246,27 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       <View style={styles.container}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.title}>Upgrade to Catfish Pro</Text>
-          <Text style={styles.subtitle}>Unlock unlimited scans and premium features</Text>
+          <Text style={styles.title}>Purchase Scan Packs</Text>
+          <Text style={styles.subtitle}>Buy scans as you need them - no recurring billing</Text>
         </View>
 
         <View style={styles.packagesContainer}>
           {renderPackage(
-            packagesByType.basic,
-            'Basic',
-            '$4.99 one-time payment',
+            packagesByType.pack_5,
+            '5 Scans',
+            '$4.99 - Perfect for trying out',
             false
           )}
           {renderPackage(
-            packagesByType.premium_monthly,
-            'Premium Monthly',
-            '$9.99/month - Best value',
+            packagesByType.pack_20,
+            '20 Scans',
+            '$14.99 - Best value',
             true
           )}
           {renderPackage(
-            packagesByType.lifetime,
-            'Lifetime Access',
-            '$24.99 - Limited early access',
+            packagesByType.pack_50,
+            '50 Scans',
+            '$29.99 - Great for frequent users',
             false
           )}
         </View>
@@ -259,22 +280,22 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
         )}
 
         <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>Catfish Pro Features:</Text>
+          <Text style={styles.featuresTitle}>How It Works:</Text>
           <View style={styles.featureItem}>
             <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>Unlimited AI image scans</Text>
+            <Text style={styles.featureText}>1 scan = 1 token</Text>
           </View>
           <View style={styles.featureItem}>
             <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>Advanced analysis features</Text>
+            <Text style={styles.featureText}>Tokens never expire</Text>
           </View>
           <View style={styles.featureItem}>
             <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>Priority support</Text>
+            <Text style={styles.featureText}>No recurring billing</Text>
           </View>
           <View style={styles.featureItem}>
             <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>Ad-free experience</Text>
+            <Text style={styles.featureText}>Buy more anytime</Text>
           </View>
         </View>
 
@@ -287,9 +308,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.purchaseButtonText}>
-              {selectedPackage?.identifier?.includes('lifetime') || selectedPackage?.identifier?.includes('basic') 
-                ? 'Purchase Now' 
-                : 'Subscribe Now'}
+              Purchase Now
             </Text>
           )}
         </TouchableOpacity>
@@ -321,8 +340,8 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
         </TouchableOpacity>
 
         <Text style={styles.termsText}>
-          By subscribing, you agree to our Terms of Service and Privacy Policy.
-          Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period.
+          By purchasing, you agree to our Terms of Service and Privacy Policy.
+          All purchases are one-time payments with no recurring billing.
         </Text>
         </ScrollView>
       </View>
