@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Text, View, TouchableOpacity, Alert, ActivityIndicator, Share, Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -280,14 +282,97 @@ function AppContent() {
     setShowScanScreen(true);
   };
 
-  const handleShare = () => {
-    // Handle share
-    console.log('Share pressed');
+  const handleShare = async () => {
+    if (!selectedImageUri) {
+      Alert.alert('Error', 'No image to share');
+      return;
+    }
+
+    try {
+      // Get the result status text
+      const resultText = analysisResult?.status === 'deepfake_detected' 
+        ? 'Confirmed Fake / AI Generated' 
+        : analysisResult?.status === 'authentic' 
+        ? 'Likely Real' 
+        : 'Inconclusive';
+
+      // Prepare share message
+      const shareMessage = `Check out this image analysis from Catfish Crasher!\n\nResult: ${resultText}`;
+
+      // Share options - React Native Share API works with URLs
+      const shareOptions = {
+        message: shareMessage,
+        url: selectedImageUri, // This works on iOS for images
+        title: 'Catfish Crasher Analysis',
+      };
+
+      // Try to share
+      const result = await Share.share(shareOptions);
+
+      // Check if user cancelled
+      if (result.action === Share.dismissedAction) {
+        // User dismissed the share dialog, no action needed
+        return;
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      
+      // If sharing failed, provide fallback message
+      if (error.message && !error.message.includes('cancelled')) {
+        Alert.alert('Error', 'Failed to share image. Please try again.');
+      }
+    }
   };
 
-  const handleSave = () => {
-    // Handle save
-    console.log('Save pressed');
+  const handleSave = async () => {
+    if (!selectedImageUri) {
+      Alert.alert('Error', 'No image to save');
+      return;
+    }
+
+    try {
+      // Request media library permissions
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant permission to save images to your photo library.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Download the image file (if it's a remote URL) or use local URI
+      let imageUri = selectedImageUri;
+      
+      // If it's a remote URL, download it first
+      if (selectedImageUri.startsWith('http://') || selectedImageUri.startsWith('https://')) {
+        const fileUri = FileSystem.documentDirectory + `image_${Date.now()}.jpg`;
+        const downloadResult = await FileSystem.downloadAsync(selectedImageUri, fileUri);
+        imageUri = downloadResult.uri;
+      }
+
+      // Save to media library
+      const asset = await MediaLibrary.createAssetAsync(imageUri);
+      
+      // Optionally, add to a specific album (create if it doesn't exist)
+      try {
+        let album = await MediaLibrary.getAlbumAsync('Catfish Crasher');
+        if (album == null) {
+          album = await MediaLibrary.createAlbumAsync('Catfish Crasher', asset, false);
+        } else {
+          await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+        }
+      } catch (albumError) {
+        console.log('Could not add to album, but image was saved:', albumError);
+      }
+
+      Alert.alert('Success', 'Image saved to your photo library!');
+    } catch (error) {
+      console.error('Error saving image:', error);
+      Alert.alert('Error', 'Failed to save image. Please try again.');
+    }
   };
 
   const handleUpgrade = () => {

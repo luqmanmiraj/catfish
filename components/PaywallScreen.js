@@ -10,6 +10,7 @@ import {
   Platform,
   Modal,
 } from 'react-native';
+import Svg, { Circle, Path, G } from 'react-native-svg';
 import * as RevenueCatService from '../services/revenueCatService';
 import colors from '../colors';
 
@@ -187,38 +188,97 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
     }
   };
 
-  const renderPackage = (pkg, title, description, isRecommended = false) => {
+  const renderPackageIcon = (pkg, scanCount, isRecommended = false) => {
     if (!pkg) return null;
 
     const isSelected = selectedPackage?.identifier === pkg.identifier;
     const price = RevenueCatService.getFormattedPrice(pkg);
 
+    // Icon sizes based on scan count
+    const iconSizes = {
+      5: { size: 60, circles: 3 },
+      20: { size: 80, circles: 5 },
+      50: { size: 100, circles: 7 },
+    };
+
+    const iconConfig = iconSizes[scanCount] || iconSizes[5];
+
     return (
       <TouchableOpacity
         key={pkg.identifier}
         style={[
-          styles.packageCard,
-          isSelected && styles.packageCardSelected,
-          isRecommended && styles.packageCardRecommended,
+          styles.packageIconCard,
+          isSelected && styles.packageIconCardSelected,
+          isRecommended && styles.packageIconCardRecommended,
         ]}
         onPress={() => setSelectedPackage(pkg)}
         disabled={purchasing}
+        activeOpacity={0.8}
       >
         {isRecommended && (
-          <View style={styles.recommendedBadge}>
-            <Text style={styles.recommendedText}>RECOMMENDED</Text>
+          <View style={styles.recommendedBadgeIcon}>
+            <Text style={styles.recommendedTextIcon}>BEST</Text>
           </View>
         )}
-        <View style={styles.packageHeader}>
-          <Text style={styles.packageTitle}>{title}</Text>
-          <Text style={styles.packagePrice}>{price}</Text>
+        <View style={styles.iconContainer}>
+          <Svg width={iconConfig.size} height={iconConfig.size} viewBox="0 0 100 100">
+            {/* Camera icon base */}
+            <Path
+              d="M20 30 L20 75 L80 75 L80 30 L65 30 L60 20 L40 20 L35 30 Z"
+              fill={isSelected ? colors.primary : colors.text.secondary}
+              opacity={0.3}
+            />
+            <Path
+              d="M25 35 L25 70 L75 70 L75 35 L62 35 L57 25 L43 25 L38 35 Z"
+              stroke={isSelected ? colors.primary : colors.text.secondary}
+              strokeWidth="2"
+              fill="none"
+            />
+            {/* Lens circle */}
+            <Circle
+              cx="50"
+              cy="52"
+              r="12"
+              stroke={isSelected ? colors.primary : colors.text.secondary}
+              strokeWidth="2"
+              fill="none"
+            />
+            <Circle
+              cx="50"
+              cy="52"
+              r="6"
+              fill={isSelected ? colors.primary : colors.text.secondary}
+              opacity={0.5}
+            />
+            {/* Flash icon */}
+            <Path
+              d="M50 25 L55 20 L52 28 L58 28 L50 35 Z"
+              fill={isSelected ? colors.primary : colors.text.secondary}
+              opacity={0.6}
+            />
+          </Svg>
+          {/* Scan count badge */}
+          <View style={[
+            styles.scanCountBadge,
+            isSelected && styles.scanCountBadgeSelected
+          ]}>
+            <Text style={[
+              styles.scanCountText,
+              isSelected && styles.scanCountTextSelected
+            ]}>{scanCount}</Text>
+          </View>
         </View>
-        {description && (
-          <Text style={styles.packageDescription}>{description}</Text>
-        )}
+        <Text style={[
+          styles.packageIconTitle,
+          isSelected && styles.packageIconTitleSelected
+        ]}>{scanCount} Scans</Text>
+        <Text style={[
+          styles.packageIconPrice,
+          isSelected && styles.packageIconPriceSelected
+        ]}>{price}</Text>
         {isSelected && (
-          <View style={styles.selectedIndicator}>
-            <Text style={styles.selectedText}>✓ Selected</Text>
+          <View style={styles.selectedIconIndicator}>
+            <Text style={styles.selectedIconText}>✓</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -250,25 +310,10 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
           <Text style={styles.subtitle}>Buy scans as you need them - no recurring billing</Text>
         </View>
 
-        <View style={styles.packagesContainer}>
-          {renderPackage(
-            packagesByType.pack_5,
-            '5 Scans',
-            '$4.99 - Perfect for trying out',
-            false
-          )}
-          {renderPackage(
-            packagesByType.pack_20,
-            '20 Scans',
-            '$14.99 - Best value',
-            true
-          )}
-          {renderPackage(
-            packagesByType.pack_50,
-            '50 Scans',
-            '$29.99 - Great for frequent users',
-            false
-          )}
+        <View style={styles.packagesIconContainer}>
+          {renderPackageIcon(packagesByType.pack_5, 5, false)}
+          {renderPackageIcon(packagesByType.pack_20, 20, true)}
+          {renderPackageIcon(packagesByType.pack_50, 50, false)}
         </View>
 
         {packages.length === 0 && (
@@ -314,16 +359,6 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.revenueCatPaywallButton}
-          onPress={handleUseRevenueCatPaywall}
-          disabled={purchasing}
-        >
-          <Text style={styles.revenueCatPaywallText}>
-            Use RevenueCat Paywall UI
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={styles.restoreButton}
           onPress={handleRestore}
           disabled={purchasing}
@@ -352,7 +387,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.background.dark,
   },
   scrollView: {
     flex: 1,
@@ -368,7 +403,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: colors.text,
+    color: colors.text.white,
     fontSize: 16,
   },
   header: {
@@ -378,97 +413,141 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.text,
+    color: colors.text.white,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.text.secondary,
     textAlign: 'center',
   },
-  packagesContainer: {
+  packagesIconContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-start',
     marginBottom: 24,
+    paddingHorizontal: 10,
   },
-  packageCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+  packageIconCard: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginHorizontal: 6,
     borderWidth: 2,
     borderColor: 'transparent',
+    position: 'relative',
+    minHeight: 180,
   },
-  packageCardSelected: {
+  packageIconCardSelected: {
     borderColor: colors.primary,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  packageCardRecommended: {
+  packageIconCardRecommended: {
     borderColor: colors.primary,
   },
-  recommendedBadge: {
+  recommendedBadgeIcon: {
     position: 'absolute',
-    top: -8,
-    right: 16,
+    top: 8,
+    right: 8,
     backgroundColor: colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+    zIndex: 10,
   },
-  recommendedText: {
+  recommendedTextIcon: {
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
   },
-  packageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  iconContainer: {
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'center',
+    marginBottom: 12,
+    position: 'relative',
   },
-  packageTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
+  scanCountBadge: {
+    position: 'absolute',
+    bottom: -8,
+    right: -8,
+    backgroundColor: colors.background.dark,
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.text.secondary,
   },
-  packagePrice: {
-    fontSize: 18,
+  scanCountBadgeSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  scanCountText: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: colors.text.secondary,
   },
-  packageDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 4,
+  scanCountTextSelected: {
+    color: '#fff',
   },
-  selectedIndicator: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  selectedText: {
-    color: colors.primary,
-    fontSize: 14,
+  packageIconTitle: {
+    fontSize: 16,
     fontWeight: '600',
+    color: colors.text.white,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  packageIconTitleSelected: {
+    color: colors.primary,
+  },
+  packageIconPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text.secondary,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  packageIconPriceSelected: {
+    color: colors.primary,
+  },
+  selectedIconIndicator: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedIconText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   noPackagesContainer: {
     padding: 20,
     alignItems: 'center',
   },
   noPackagesText: {
-    color: colors.textSecondary,
+    color: colors.text.secondary,
     fontSize: 14,
     textAlign: 'center',
   },
   featuresContainer: {
     marginBottom: 24,
     padding: 16,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
   },
   featuresTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.text.white,
     marginBottom: 12,
   },
   featureItem: {
@@ -485,7 +564,7 @@ const styles = StyleSheet.create({
   featureText: {
     flex: 1,
     fontSize: 14,
-    color: colors.text,
+    color: colors.text.white,
   },
   purchaseButton: {
     backgroundColor: colors.primary,
@@ -503,7 +582,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   revenueCatPaywallButton: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -530,12 +609,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeButtonText: {
-    color: colors.textSecondary,
+    color: colors.text.secondary,
     fontSize: 16,
   },
   termsText: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.text.secondary,
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 18,

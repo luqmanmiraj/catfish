@@ -15,7 +15,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Access for camera to pass photo/video identification"
+        "NSCameraUsageDescription": "Access for camera to pass photo/video identification",
+        "NSPhotoLibraryUsageDescription": "Access to save analyzed images to your photo library",
+        "NSPhotoLibraryAddUsageDescription": "Access to save analyzed images to your photo library"
       },
       "bundleIdentifier": "com.anonymous.catfish"
     },
@@ -27,7 +29,10 @@
       "package": "com.anonymous.catfish",
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES"
       ]
     },
     "web": {
