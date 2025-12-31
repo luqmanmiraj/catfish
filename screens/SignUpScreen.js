@@ -21,7 +21,7 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, resendConfirmationCode } = useAuth();
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,6 +34,38 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent }) => {
            /[A-Z]/.test(password) &&
            /[a-z]/.test(password) &&
            /[0-9]/.test(password);
+  };
+
+  /**
+   * Check if error indicates account already exists
+   */
+  const isAccountExistsError = (errorMessage) => {
+    if (!errorMessage) return false;
+    const lowerMessage = errorMessage.toLowerCase();
+    return lowerMessage.includes('account with this email already exists') ||
+           lowerMessage.includes('username already exists') ||
+           lowerMessage.includes('userexistsexception');
+  };
+
+  /**
+   * Handle account already exists scenario - resend verification code and redirect
+   */
+  const handleAccountExists = async (email) => {
+    try {
+      const resendResult = await resendConfirmationCode(email.trim());
+      if (resendResult.success) {
+        // Successfully resent code - redirect to verification screen
+        if (onVerificationSent) {
+          onVerificationSent(email.trim());
+        }
+      } else {
+        // Failed to resend code - show error
+        Alert.alert('Error', resendResult.error || 'Failed to resend verification code. Please try again.');
+      }
+    } catch (resendError) {
+      // Error resending code - show error
+      Alert.alert('Error', resendError.message || 'Failed to resend verification code. Please try again.');
+    }
   };
 
   const handleSignUp = async () => {
@@ -83,10 +115,26 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent }) => {
           ]
         );
       } else {
-        Alert.alert('Sign Up Failed', result.error || 'Please try again');
+        // Check if error is "account already exists"
+        const errorMessage = result.error || '';
+        if (isAccountExistsError(errorMessage)) {
+          // Account exists - resend verification code and redirect to verification screen
+          await handleAccountExists(email);
+        } else {
+          // Other signup errors
+          Alert.alert('Sign Up Failed', errorMessage || 'Please try again');
+        }
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      // Check if error is "account already exists"
+      const errorMessage = error.message || '';
+      if (isAccountExistsError(errorMessage)) {
+        // Account exists - resend verification code and redirect to verification screen
+        await handleAccountExists(email);
+      } else {
+        // Other errors
+        Alert.alert('Error', errorMessage || 'An unexpected error occurred');
+      }
     } finally {
       setIsLoading(false);
     }

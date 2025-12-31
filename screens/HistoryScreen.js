@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Text, View, TouchableOpacity, Image, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Circle } from 'react-native-svg';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { historyStyles } from '../styles';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
@@ -196,7 +196,13 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
     <View style={historyStyles.container}>
       {/* Header */}
       <View style={historyStyles.header}>
-        <View>
+        {/* Divider Icon */}
+        <View style={historyStyles.dividerContainer}>
+          <Svg width="144" height="5" viewBox="0 0 144 5" fill="none">
+            <Rect width="144" height="5" rx="2.5" transform="matrix(-1 0 0 1 144 0)" fill="white" />
+          </Svg>
+        </View>
+        <View style={historyStyles.titleContainer}>
           <Text style={historyStyles.title}>Scan History</Text>
           <Text style={historyStyles.subtitle}>
             {loading ? 'Loading...' : `${scanHistory.length} scan${scanHistory.length !== 1 ? 's' : ''}`}
@@ -257,7 +263,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
                 {scan.image ? (
                   <Image 
                     source={{ uri: scan.image }} 
-                    style={{ width: 80, height: 80, borderRadius: 8 }}
+                    style={historyStyles.cardImageStyle}
                     resizeMode="cover"
                   />
                 ) : (

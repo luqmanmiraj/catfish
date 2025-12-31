@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import { Text, View, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { useAuth } from '../context/AuthContext';
 import { useSubscription } from '../context/SubscriptionContext';
 import { profileStyles } from '../styles';
 import colors from '../colors';
+import UserInfoCard from '../components/UserInfoCard';
+import PurchaseScansCard from '../components/PurchaseScansCard';
+import SettingsCard from '../components/SettingsCard';
+import AccountActions from '../components/AccountActions';
 
 const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, onLogOut, onDeleteAccount, onManageSubscription }) => {
   const insets = useSafeAreaInsets();
   const { user, isAuthenticated } = useAuth();
   const { scansRemaining, tokenBalance } = useSubscription();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   
   // Check if user is a guest
   const isGuest = user?.email?.includes('@temp.catfish.app') || user?.['custom:is_guest'] === 'true';
@@ -29,188 +32,22 @@ const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, o
         </View>
 
         {/* User Account Information Card */}
-        <View style={profileStyles.card}>
-          <View style={profileStyles.userInfoRow}>
-            <View style={profileStyles.userIconContainer}>
-              <Svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                <Circle cx="30" cy="30" r="30" fill={colors.primary} />
-                <Circle cx="30" cy="22" r="8" fill="white" />
-                <Path
-                  d="M30 35C22 35 15 38 15 42V45H45V42C45 38 38 35 30 35Z"
-                  fill="white"
-                />
-              </Svg>
-            </View>
-            <View style={profileStyles.userInfo}>
-              <Text style={profileStyles.userName}>{displayName}</Text>
-              <Text style={profileStyles.accountType}>
-                {isAuthenticated ? displayEmail || 'Free Account' : 'Guest User'}
-              </Text>
-              <View style={profileStyles.statsRow}>
-                <View style={profileStyles.statItem}>
-                  <Text style={profileStyles.statNumber}>{scansRemaining || 0}</Text>
-                  <Text style={profileStyles.statLabel}>Scans Left</Text>
-                </View>
-                <View style={profileStyles.statItem}>
-                  <Text style={profileStyles.statNumber}>{tokenBalance || 0}</Text>
-                  <Text style={profileStyles.statLabel}>Token Balance</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
+        <UserInfoCard
+          displayName={displayName}
+          displayEmail={displayEmail}
+          isAuthenticated={isAuthenticated}
+          scansRemaining={scansRemaining}
+          tokenBalance={tokenBalance}
+        />
 
         {/* Purchase Scan Packs Card */}
-        <View style={profileStyles.upgradeCard}>
-          <Text style={profileStyles.priceText}>
-            <Text style={profileStyles.dollarSign}>Starting at $</Text>
-            <Text style={profileStyles.priceAmount}>4.99</Text>
-          </Text>
-          <TouchableOpacity
-            style={profileStyles.upgradeButton}
-            onPress={onUpgrade}
-            activeOpacity={0.8}
-          >
-            <Text style={profileStyles.crownIcon}>💰</Text>
-            <Text style={profileStyles.upgradeButtonText}>Purchase Scans</Text>
-          </TouchableOpacity>
-          <Text style={profileStyles.upgradeTerms}>
-            5 Scans $4.99 • 20 Scans $14.99 • 50 Scans $29.99
-          </Text>
-        </View>
+        <PurchaseScansCard onUpgrade={onUpgrade} />
 
         {/* Settings Card */}
-        <View style={profileStyles.card}>
-          <Text style={profileStyles.settingsTitle}>Settings</Text>
-          
-          {/* Notifications */}
-          <View style={profileStyles.settingItem}>
-            <View style={profileStyles.settingLeft}>
-              <View style={profileStyles.settingIconContainer}>
-                <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M18 8A6 6 0 0 0 6 8C6 11.31 3 14 3 14H21C21 14 18 11.31 18 8Z"
-                    stroke={colors.primary}
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                  <Path
-                    d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21"
-                    stroke={colors.primary}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </Svg>
-              </View>
-              <View style={profileStyles.settingTextContainer}>
-                <Text style={profileStyles.settingTitle}>Notifications</Text>
-                <Text style={profileStyles.settingSubtitle}>Receive scan alerts</Text>
-              </View>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#767577', true: colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          {/* Privacy & Safety */}
-          <TouchableOpacity style={[profileStyles.settingItem, { borderBottomWidth: 0 }]}>
-            <View style={profileStyles.settingLeft}>
-              <View style={profileStyles.settingIconContainer}>
-                <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
-                    stroke={colors.primary}
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                  <Path
-                    d="M9 12L11 14L15 10"
-                    stroke={colors.primary}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
-              </View>
-              <View style={profileStyles.settingTextContainer}>
-                <Text style={profileStyles.settingTitle}>Privacy & Safety</Text>
-                <Text style={profileStyles.settingSubtitle}>Learn about catfishing</Text>
-              </View>
-            </View>
-            <Svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <Path
-                d="M6 12L10 8L6 4"
-                stroke={colors.accent.lightGreyBlue}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </TouchableOpacity>
-        </View>
+        <SettingsCard />
 
         {/* Account Management */}
-        <View style={profileStyles.accountActions}>
-          <TouchableOpacity
-            style={profileStyles.actionItem}
-            onPress={onLogOut}
-            activeOpacity={0.7}
-          >
-            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <Path
-                d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9"
-                stroke={colors.accent.lightGreyBlue}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <Path
-                d="M16 17L21 12L16 7"
-                stroke={colors.accent.lightGreyBlue}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <Path
-                d="M21 12H9"
-                stroke={colors.accent.lightGreyBlue}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-            <Text style={profileStyles.actionText}>Log Out</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={profileStyles.actionItem}
-            onPress={onDeleteAccount}
-            activeOpacity={0.7}
-          >
-            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <Path
-                d="M3 6H5H21"
-                stroke={colors.accent.red}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <Path
-                d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                stroke={colors.accent.red}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-            <Text style={[profileStyles.actionText, { color: colors.accent.red }]}>
-              Delete Account
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <AccountActions onLogOut={onLogOut} onDeleteAccount={onDeleteAccount} />
       </ScrollView>
 
       {/* Bottom Navigation */}

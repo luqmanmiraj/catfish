@@ -6,6 +6,11 @@ import { resultsStyles } from '../styles';
 import colors from '../colors';
 
 const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave }) => {
+  // Debug: Log the analysis result to see what we're receiving
+  console.log('ResultsScreen - Full analysisResult:', JSON.stringify(analysisResult, null, 2));
+  console.log('ResultsScreen - analysisResult?.status:', analysisResult?.status);
+  console.log('ResultsScreen - analysisResult keys:', analysisResult ? Object.keys(analysisResult) : 'null');
+
   const getCurrentDateTime = () => {
     const now = new Date();
     const date = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -24,6 +29,14 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave 
     analysisResult?.status === 'inconclusive'||
     analysisResult?.status === 'unverifiable' ||
     analysisResult?.status === 'unverified';
+  
+  // Debug: Log the status checks
+  console.log('ResultsScreen - Status checks:', {
+    isDeepfakeDetected,
+    isAuthentic,
+    isUnknown,
+    statusValue: analysisResult?.status
+  });
   const getSummaryFromResult = () => {
     if (!analysisResult) {
       return {
@@ -293,27 +306,15 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave 
   // Render analysis header icon
   const renderAnalysisIcon = () => {
     if (isDeepfakeDetected) {
-      // Red warning icon (circle with diagonal line)
+      // Red circle with diagonal line (prohibited/stop symbol)
       return (
         <View style={resultsStyles.checkmarkContainer}>
-          <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <Circle cx="10" cy="10" r="9" fill="#FF3B30" />
-            <Line
-              x1="5"
-              y1="5"
-              x2="15"
-              y2="15"
+          <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+            <Circle cx="8.5" cy="8.5" r="8.5" fill="#FF3B30" />
+            <Path
+              d="M3 3L14 14M14 3L3 14"
               stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <Line
-              x1="15"
-              y1="5"
-              x2="5"
-              y2="15"
-              stroke="white"
-              strokeWidth="2"
+              strokeWidth="2.5"
               strokeLinecap="round"
             />
           </Svg>
@@ -322,17 +323,21 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave 
     }
 
     if (isUnknown) {
-      // Info icon (lowercase "i" in a light blue circle)
+      // Square icon with rounded corners and white "i" for inconclusive
       return (
         <View style={resultsStyles.checkmarkContainer}>
-          <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <Circle cx="10" cy="10" r="9" fill={colors.primary} />
-            {/* Lowercase "i" letter */}
-            <Circle cx="10" cy="6" r="1.5" fill="white" />
+          <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+            {/* Rounded square background */}
             <Path
-              d="M10 8V14"
+              d="M0 2.5C0 1.11929 1.11929 0 2.5 0H14.5C15.8807 0 17 1.11929 17 2.5V14.5C17 15.8807 15.8807 17 14.5 17H2.5C1.11929 17 0 15.8807 0 14.5V2.5Z"
+              fill="#9CA3AF"
+            />
+            {/* White lowercase "i" */}
+            <Circle cx="8.5" cy="5" r="1" fill="white" />
+            <Path
+              d="M8.5 7V12"
               stroke="white"
-              strokeWidth="2"
+              strokeWidth="1.5"
               strokeLinecap="round"
             />
           </Svg>
@@ -340,18 +345,26 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave 
       );
     }
 
-    // Green checkmark for authentic
+    // Green rounded rectangle with white checkmark for authentic
     return (
       <View style={resultsStyles.checkmarkContainer}>
-        <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+          <Defs>
+            <LinearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="17" gradientUnits="userSpaceOnUse">
+              <Stop offset="0" stopColor="#22C55E" stopOpacity="1" />
+              <Stop offset="1" stopColor="#00C853" stopOpacity="1" />
+            </LinearGradient>
+          </Defs>
+          {/* Rounded rectangle background with gradient */}
           <Path
-            d="M2 2H18V18H2V2Z"
-            fill={colors.accent.green}
+            d="M0 3C0 1.34315 1.34315 0 3 0H14C15.6569 0 17 1.34315 17 3V14C17 15.6569 15.6569 17 14 17H3C1.34315 17 0 15.6569 0 14V3Z"
+            fill="url(#greenGradient)"
           />
+          {/* White checkmark */}
           <Path
-            d="M6 10L9 13L14 7"
+            d="M4 8.5L7 11.5L13 5.5"
             stroke="white"
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -388,13 +401,20 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave 
             <Text style={resultsStyles.analysisTitle}>Detailed Analysis</Text>
           </View>
 
-          <Text style={resultsStyles.analysisSummary}>
-            {analysisResult
-              ? primaryMessage
-              : 'No detailed analysis data was returned from the server.'}
-          </Text>
+          {/* Divider under header */}
+          <View style={resultsStyles.analysisDivider} />
+
+          <View style={resultsStyles.analysisSummaryContainer}>
+            <Text style={resultsStyles.analysisSummary}>
+              {analysisResult
+                ? primaryMessage
+                : 'No detailed analysis data was returned from the server.'}
+            </Text>
+          </View>
 
           <View style={resultsStyles.detailsList}>
+            {/* Divider above details list */}
+            <View style={resultsStyles.analysisDividerSummary} />
             <View style={resultsStyles.detailRow}>
               <Text style={resultsStyles.detailLabel}>Detection Algorithm</Text>
               <Text style={resultsStyles.detailValue}>{metadata.detectionAlgorithm}</Text>
@@ -417,16 +437,21 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave 
             onPress={onScanAgain}
             activeOpacity={0.8}
           >
-            <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <Circle cx="10" cy="10" r="8" stroke="white" strokeWidth="2" fill="none" />
-              <Path
-                d="M10 4V8L13 5"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
+            <View style={{ transform: [{ scaleX: -1 }] }}>
+              <Svg width="20" height="20" viewBox="0 0 528.919 528.918" fill="none">
+                <G transform={`rotate(70, 264.46, 264.46)`}>
+                  <Path
+                    d="M70.846,324.059c3.21,3.926,8.409,3.926,11.619,0l69.162-84.621c3.21-3.926,1.698-7.108-3.372-7.108h-36.723
+			c-5.07,0-8.516-4.061-7.427-9.012c18.883-85.995,95.625-150.564,187.207-150.564c105.708,0,191.706,85.999,191.706,191.706
+			c0,105.709-85.998,191.707-191.706,191.707c-12.674,0-22.95,10.275-22.95,22.949s10.276,22.949,22.95,22.949
+			c131.018,0,237.606-106.588,237.606-237.605c0-131.017-106.589-237.605-237.606-237.605
+			c-116.961,0-214.395,84.967-233.961,196.409c-0.878,4.994-5.52,9.067-10.59,9.067H5.057c-5.071,0-6.579,3.182-3.373,7.108
+			L70.846,324.059z"
+                    fill="white"
+                  />
+                </G>
+              </Svg>
+            </View>
             <Text style={resultsStyles.scanAgainText}>Scan Again</Text>
           </TouchableOpacity>
 

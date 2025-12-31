@@ -165,11 +165,6 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
 
       {/* Analysis Progress Section */}
       <View style={analysisStyles.progressSection}>
-        <View style={analysisStyles.progressHeader}>
-          <Text style={analysisStyles.analyzingText}>Analyzing</Text>
-          <Text style={analysisStyles.percentageText}>{Math.round(progress)}%</Text>
-        </View>
-        
         {/* Progress Bar */}
         <View style={analysisStyles.progressBarContainer}>
           <Animated.View
@@ -178,6 +173,12 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
               { width: progressWidth },
             ]}
           />
+        </View>
+
+        {/* Percentage and Analyzing Text Row */}
+        <View style={analysisStyles.progressTextRow}>
+          <Text style={analysisStyles.analyzingText}>Analyzing</Text>
+          <Text style={analysisStyles.percentageText}>{Math.round(progress)}%</Text>
         </View>
 
         {/* Status Message */}

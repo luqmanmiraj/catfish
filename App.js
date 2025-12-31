@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Text, View, TouchableOpacity, Alert, ActivityIndicator, Share, Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
+import * as Print from 'expo-print';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -256,11 +257,12 @@ function AppContent() {
     console.log('Analysis complete - showing results screen');
     
     // Decrement token after successful scan (if authenticated)
+    // DEV MODE: Only local decrement - no backend sync
     if (isAuthenticated && result) {
       try {
         await decrementToken();
-        // Refresh token balance to ensure sync
-        await refreshSubscriptionStatus();
+        // DEV MODE: Commented out refresh - using hardcoded values
+        // await refreshSubscriptionStatus();
       } catch (error) {
         console.error('Error decrementing token:', error);
         // Continue even if token decrement fails - scan was successful
@@ -325,8 +327,8 @@ function AppContent() {
   };
 
   const handleSave = async () => {
-    if (!selectedImageUri) {
-      Alert.alert('Error', 'No image to save');
+    if (!selectedImageUri || !analysisResult) {
+      Alert.alert('Error', 'No image or analysis result to save');
       return;
     }
 
@@ -337,26 +339,206 @@ function AppContent() {
       if (status !== 'granted') {
         Alert.alert(
           'Permission Required',
-          'Please grant permission to save images to your photo library.',
+          'Please grant permission to save files to your device.',
           [{ text: 'OK' }]
         );
         return;
       }
 
-      // Download the image file (if it's a remote URL) or use local URI
-      let imageUri = selectedImageUri;
-      
-      // If it's a remote URL, download it first
+      // Get image as base64 for PDF
+      let imageBase64 = '';
       if (selectedImageUri.startsWith('http://') || selectedImageUri.startsWith('https://')) {
-        const fileUri = FileSystem.documentDirectory + `image_${Date.now()}.jpg`;
-        const downloadResult = await FileSystem.downloadAsync(selectedImageUri, fileUri);
-        imageUri = downloadResult.uri;
+        // Download and convert to base64
+        const downloadResult = await FileSystem.downloadAsync(selectedImageUri, FileSystem.documentDirectory + `temp_image_${Date.now()}.jpg`);
+        const base64 = await FileSystem.readAsStringAsync(downloadResult.uri, { encoding: FileSystem.EncodingType.Base64 });
+        imageBase64 = `data:image/jpeg;base64,${base64}`;
+      } else {
+        // Local file, read as base64
+        const base64 = await FileSystem.readAsStringAsync(selectedImageUri, { encoding: FileSystem.EncodingType.Base64 });
+        imageBase64 = `data:image/jpeg;base64,${base64}`;
       }
 
-      // Save to media library
-      const asset = await MediaLibrary.createAssetAsync(imageUri);
+      // Get analysis summary
+      const isDeepfakeDetected = analysisResult?.status === 'deepfake_detected';
+      const isAuthentic = analysisResult?.status === 'authentic';
+      const isUnknown = 
+        !analysisResult?.status ||
+        analysisResult?.status === 'empty' ||
+        analysisResult?.status === 'no_result' ||
+        analysisResult?.status === 'unknown' ||
+        analysisResult?.status === 'inconclusive' ||
+        analysisResult?.status === 'unverifiable' ||
+        analysisResult?.status === 'unverified';
+
+      let headline = 'Inconclusive';
+      let subheadline = 'Insufficient data for analysis';
       
-      // Optionally, add to a specific album (create if it doesn't exist)
+      if (isDeepfakeDetected) {
+        const confidence = analysisResult?.confidence ?? analysisResult?.deepfakeScore ?? analysisResult?.score ?? null;
+        headline = 'Confirmed Fake / AI Generated';
+        subheadline = confidence != null ? `High confidence fake or AI (${Math.round(Number(confidence))}% confidence)` : 'High confidence fake or AI';
+      } else if (isAuthentic) {
+        const confidence = analysisResult?.confidence ?? analysisResult?.score ?? null;
+        headline = 'Likely Real';
+        subheadline = confidence != null ? `${Math.round(Number(confidence))}% confidence` : 'High authenticity confidence';
+      } else if (isUnknown) {
+        headline = 'Inconclusive';
+        subheadline = 'Insufficient data for analysis';
+      }
+
+      const metadata = {
+        detectionAlgorithm: analysisResult?.metadata?.detectionAlgorithm || 'AI Pattern Recognition v2.1',
+        processingTime: analysisResult?.metadata?.processingTime || '3.2s',
+        imageQuality: analysisResult?.metadata?.imageQuality || 'High Resolution',
+      };
+
+      const primaryMessage = analysisResult?.primaryMessage || 
+        (isDeepfakeDetected 
+          ? 'We can say with high confidence that this image was partially or completely created or altered using AI.'
+          : isUnknown
+            ? 'Image quality too low or insufficient data to verify authenticity.'
+            : 'Below is a summary of the Hive AI analysis for this image.');
+
+      const currentDateTime = new Date().toLocaleString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        hour12: true 
+      });
+
+      // Create HTML for PDF
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                padding: 20px;
+                background-color: #0E1F2B;
+                color: #FFFFFF;
+              }
+              .header {
+                text-align: center;
+                margin-bottom: 30px;
+              }
+              .title {
+                font-size: 24px;
+                color: #0AB4E0;
+                margin-bottom: 8px;
+              }
+              .date {
+                font-size: 14px;
+                color: #A0B4C8;
+                margin-bottom: 30px;
+              }
+              .image-container {
+                text-align: center;
+                margin-bottom: 30px;
+              }
+              .image-container img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 12px;
+              }
+              .result-section {
+                background-color: rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 20px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+              }
+              .headline {
+                font-size: 32px;
+                font-weight: bold;
+                margin-bottom: 8px;
+                color: ${isDeepfakeDetected ? '#FF3B30' : isAuthentic ? '#4CAF50' : '#A0B4C8'};
+              }
+              .subheadline {
+                font-size: 16px;
+                color: #A0B4C8;
+                margin-bottom: 20px;
+              }
+              .analysis-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 12px;
+                color: #FFFFFF;
+              }
+              .analysis-text {
+                font-size: 16px;
+                color: #FFFFFF;
+                line-height: 24px;
+                margin-bottom: 20px;
+              }
+              .details-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+              }
+              .details-table td {
+                padding: 12px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                color: #FFFFFF;
+              }
+              .details-label {
+                color: #A0B4C8;
+                font-size: 14px;
+              }
+              .details-value {
+                font-weight: 600;
+                font-size: 14px;
+                text-align: right;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="title">Catfish Crasher - Scan Report</div>
+              <div class="date">${currentDateTime}</div>
+            </div>
+            
+            <div class="image-container">
+              <img src="${imageBase64}" alt="Scanned Image" />
+            </div>
+            
+            <div class="result-section">
+              <div class="headline">${headline}</div>
+              <div class="subheadline">${subheadline}</div>
+              
+              <div class="analysis-title">Detailed Analysis</div>
+              <div class="analysis-text">${primaryMessage}</div>
+              
+              <table class="details-table">
+                <tr>
+                  <td class="details-label">Detection Algorithm</td>
+                  <td class="details-value">${metadata.detectionAlgorithm}</td>
+                </tr>
+                <tr>
+                  <td class="details-label">Processing Time</td>
+                  <td class="details-value">${metadata.processingTime}</td>
+                </tr>
+                <tr>
+                  <td class="details-label">Image Quality</td>
+                  <td class="details-value">${metadata.imageQuality}</td>
+                </tr>
+              </table>
+            </div>
+          </body>
+        </html>
+      `;
+
+      // Generate PDF
+      const { uri } = await Print.printToFileAsync({ html });
+      
+      // Save PDF to media library
+      const asset = await MediaLibrary.createAssetAsync(uri);
+      
+      // Optionally, add to a specific album
       try {
         let album = await MediaLibrary.getAlbumAsync('Catfish Crasher');
         if (album == null) {
@@ -365,13 +547,13 @@ function AppContent() {
           await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
         }
       } catch (albumError) {
-        console.log('Could not add to album, but image was saved:', albumError);
+        console.log('Could not add to album, but PDF was saved:', albumError);
       }
 
-      Alert.alert('Success', 'Image saved to your photo library!');
+      Alert.alert('Success', 'PDF report saved to your device!');
     } catch (error) {
-      console.error('Error saving image:', error);
-      Alert.alert('Error', 'Failed to save image. Please try again.');
+      console.error('Error saving PDF:', error);
+      Alert.alert('Error', 'Failed to save PDF. Please try again.');
     }
   };
 
@@ -590,6 +772,7 @@ function AppContent() {
         <>
           <PermissionsScreen
             onSignIn={handleSignIn}
+            onSignUp={handleSignUp}
             onContinueAsGuest={handleContinueAsGuest}
             isCreatingGuest={isCreatingGuest}
           />
@@ -611,7 +794,7 @@ function AppContent() {
             <Text style={styles.taglineText}>Detect AI-Generated Images Instantly</Text>
           </View>
         </View>
-        <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 30) }]}>
+        <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 30) - 5 }]}>
           <TouchableOpacity 
             style={styles.getStartedButton}
             onPress={handleGetStarted}

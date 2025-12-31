@@ -17,7 +17,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Access for camera to pass photo/video identification",
         "NSPhotoLibraryUsageDescription": "Access to save analyzed images to your photo library",
-        "NSPhotoLibraryAddUsageDescription": "Access to save analyzed images to your photo library"
+        "NSPhotoLibraryAddUsageDescription": "Access to save analyzed images to your photo library",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.anonymous.catfish"
     },

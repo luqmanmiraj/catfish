@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    // marginBottom: 40,
   },
   logoBox: {
     padding: 20,
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   getStartedText: {
     color: colors.text.white,
     fontSize: 20,
-    fontWeight: 'bold',
+    // fontWeight: 'bold',
   },
 });
 
@@ -127,8 +127,8 @@ export const permissionStyles = StyleSheet.create({
   },
   guestButton: {
     backgroundColor: colors.background.dark,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    borderWidth: 0.1,
+    borderColor: colors.text.white,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -165,21 +165,20 @@ export const scanStyles = StyleSheet.create({
   },
   appName: {
     fontSize: 20,
-    fontWeight: 'bold',
+    // fontWeight: 'bold',
     color: colors.text.primary,
     letterSpacing: 1,
     marginBottom: 4,
   },
   scansRemaining: {
     fontSize: 14,
-    color: colors.text.white,
+    color: colors.text.secondary,
   },
   upgradeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.accent.yellow,
     borderRadius: 8,
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     gap: 6,
   },
@@ -288,10 +287,11 @@ export const scanStyles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text.white,
     marginBottom: 12,
+    textAlign: 'center',
   },
   descriptionText: {
     fontSize: 16,
-    color: colors.text.white,
+    color: colors.text.grey,
     textAlign: 'center',
     paddingHorizontal: 40,
     lineHeight: 24,
@@ -329,15 +329,24 @@ export const historyStyles = StyleSheet.create({
     paddingBottom: 20,
     backgroundColor: colors.background.dark,
   },
+  dividerContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  titleContainer: {
+    alignItems: 'flex-start',
+  },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: colors.text.primary,
     marginBottom: 4,
+    textAlign: 'left',
   },
   subtitle: {
     fontSize: 16,
     color: colors.text.white,
+    textAlign: 'left',
   },
   content: {
     flex: 1,
@@ -349,11 +358,20 @@ export const historyStyles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
+    
   },
   cardImage: {
     width: 100,
     height: 100,
-    marginRight: 12,
+    marginRight: 14,
+    
+  },
+  cardImageStyle: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.text.grey,
   },
   imagePlaceholder: {
     width: 100,
@@ -362,10 +380,14 @@ export const historyStyles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+   
+    
+ 
   },
   cardContent: {
     flex: 1,
     justifyContent: 'space-between',
+    
   },
   statusRow: {
     flexDirection: 'row',
@@ -383,7 +405,7 @@ export const historyStyles = StyleSheet.create({
     marginBottom: 8,
   },
   percentage: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text.white,
   },
@@ -394,12 +416,12 @@ export const historyStyles = StyleSheet.create({
   },
   date: {
     fontSize: 14,
-    color: colors.text.white,
+    color: colors.text.grey,
   },
   description: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.accent.lightGreyBlue,
-    lineHeight: 20,
+    // lineHeight: 20,
   },
   bottomNav: {
     flexDirection: 'row',
@@ -458,15 +480,18 @@ export const aboutStyles = StyleSheet.create({
     marginBottom: 8,
   },
   tagline: {
-    fontSize: 16,
+    fontSize: 20,
     color: colors.text.white,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: colors.text.text_bg,
+    opacity: 0.7,
     borderRadius: 12,
     padding: 20,
     marginHorizontal: 20,
     marginBottom: 20,
+    borderWidth: 0.1,
+    borderColor: colors.text.white,
   },
   cardTitle: {
     fontSize: 20,
@@ -519,6 +544,37 @@ export const aboutStyles = StyleSheet.create({
     color: colors.primary,
     flex: 1,
   },
+  learnMoreSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  learnMoreTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text.white,
+    marginBottom: 16,
+  },
+  learnMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'transparent',
+    borderWidth: 0.1,
+    borderTopWidth: 0.1,
+    borderRightWidth: 0.1,
+    borderBottomWidth: 0.1,
+    borderLeftWidth: 0.1,
+    borderColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  learnMoreButtonText: {
+    fontSize: 16,
+    color: colors.primary,
+    flex: 1,
+  },
   footer: {
     paddingHorizontal: 20,
     paddingVertical: 30,
@@ -526,7 +582,7 @@ export const aboutStyles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: colors.text.white,
+    color: colors.text.version_color,
     marginBottom: 4,
   },
   bottomNav: {
@@ -571,15 +627,18 @@ export const profileStyles = StyleSheet.create({
     color: colors.text.primary,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(25, 45, 65, 0.7)',
     borderRadius: 12,
     padding: 20,
     marginHorizontal: 20,
     marginBottom: 20,
+    borderWidth: 0.1,
+    borderColor: colors.text.white,
+
   },
   userInfoRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   userIconContainer: {
     marginRight: 16,
@@ -596,11 +655,11 @@ export const profileStyles = StyleSheet.create({
   accountType: {
     fontSize: 14,
     color: colors.accent.lightGreyBlue,
-    marginBottom: 16,
   },
   statsRow: {
     flexDirection: 'row',
     gap: 24,
+    marginTop: 16,
   },
   statItem: {
     flex: 1,
@@ -616,7 +675,9 @@ export const profileStyles = StyleSheet.create({
     color: colors.accent.lightGreyBlue,
   },
   upgradeCard: {
-    backgroundColor: colors.accent.gold,
+    borderWidth: 1,
+    borderColor: colors.accent.gold, // Full opacity border
+    backgroundColor: 'rgba(240, 177, 0, 0.3)', // Semi-transparent background using rgba
     borderRadius: 12,
     padding: 20,
     marginHorizontal: 20,
@@ -625,44 +686,51 @@ export const profileStyles = StyleSheet.create({
   },
   priceText: {
     marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   dollarSign: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text.white,
+    marginBottom: 5,
+    marginRight: 5,
   },
   priceAmount: {
-    fontSize: 36,
-    fontWeight: 'bold',
+    fontSize: 60,
+    // fontWeight: 'bold',
     color: colors.text.white,
+    marginHorizontal: 10,
   },
   pricePeriod: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text.white,
+    fontSize: 16,
+    marginBottom: 12,
+    // fontWeight: 'bold',
+    color: colors.text.grey,
+    marginLeft: 5,
   },
   upgradeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.accent.goldButton,
+    justifyContent: 'center',
+    // backgroundColor removed - using LinearGradient instead
     borderRadius: 12,
     paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingHorizontal: 14,
     marginBottom: 12,
-    gap: 8,
+    gap: 10,
+    minWidth: '100%',
   },
   crownIcon: {
     fontSize: 18,
   },
   upgradeButtonText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text.white,
+    // fontWeight: 'bold',
+    color: colors.text.black,
   },
   upgradeTerms: {
     fontSize: 12,
-    color: colors.text.white,
+    color: colors.text.grey,
     textAlign: 'center',
+    marginTop: 16,
   },
   settingsTitle: {
     fontSize: 20,
@@ -702,10 +770,12 @@ export const profileStyles = StyleSheet.create({
   accountActions: {
     paddingHorizontal: 20,
     marginBottom: 20,
+    alignItems: 'center',
   },
   actionItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 16,
     gap: 12,
   },
@@ -754,14 +824,14 @@ export const cameraScanStyles = StyleSheet.create({
   },
   appName: {
     fontSize: 20,
-    fontWeight: 'bold',
+    // fontWeight: 'bold',
     color: colors.text.primary,
     letterSpacing: 1,
     marginBottom: 4,
   },
   scansRemaining: {
     fontSize: 14,
-    color: colors.text.white,
+    color: colors.text.secondary,
   },
   upgradeButton: {
     flexDirection: 'row',
@@ -862,6 +932,16 @@ export const cameraScanStyles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 15,
   },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    zIndex: 50,
+    elevation: 50,
+  },
   bottomSection: {
     flex: 1.2,
     backgroundColor: '#1E2F3A',
@@ -906,7 +986,7 @@ export const cameraScanStyles = StyleSheet.create({
   },
   takePhotoText: {
     fontSize: 18,
-    fontWeight: '600',
+    // fontWeight: '600',
     color: colors.text.white,
   },
   uploadGalleryButton: {
@@ -918,14 +998,14 @@ export const cameraScanStyles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 24,
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 10,
     gap: 12,
     borderWidth: 1,
-    borderColor: 'rgba(10, 180, 224, 0.4)',
+    borderColor: 'rgba(10, 180, 224)',
   },
   uploadGalleryText: {
     fontSize: 18,
-    fontWeight: '600',
+    // fontWeight: '600',
     color: colors.text.white,
   },
   cancelButton: {
@@ -943,7 +1023,7 @@ export const analysisStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.dark,
     paddingHorizontal: 20,
-    paddingTop: 60,
+    justifyContent: 'center',
   },
   imageContainer: {
     width: '100%',
@@ -952,7 +1032,7 @@ export const analysisStyles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
     overflow: 'hidden',
-    marginBottom: 30,
+    marginBottom: 60,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   image: {
@@ -964,19 +1044,28 @@ export const analysisStyles = StyleSheet.create({
   },
   progressHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 12,
   },
+  progressTextRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
   analyzingText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.white,
+    // fontWeight: '600',
+    color: colors.text.secondary,
+    textAlign: 'left',
+    // marginTop: 12,
   },
   percentageText: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.primary,
+    textAlign: 'right',
   },
   progressBarContainer: {
     width: '100%',
@@ -984,7 +1073,7 @@ export const analysisStyles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 5,
   },
   progressBarFill: {
     height: '100%',
@@ -992,9 +1081,10 @@ export const analysisStyles = StyleSheet.create({
     borderRadius: 4,
   },
   statusMessage: {
-    fontSize: 14,
+    fontSize: 17,
     color: colors.primary,
     textAlign: 'center',
+    marginTop: 12,
   },
 });
 
@@ -1050,6 +1140,8 @@ export const resultsStyles = StyleSheet.create({
     padding: 20,
     marginHorizontal: 20,
     marginBottom: 20,
+    borderWidth: 0.1,
+    borderColor: '#fff',
   },
   analysisHeader: {
     flexDirection: 'row',
@@ -1057,20 +1149,37 @@ export const resultsStyles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
+  analysisDivider: {
+    height: 0.5,
+    width: '100%',
+    backgroundColor: colors.text.grey,
+    marginVertical: 14,
+    marginBottom:20,
+  },
+  analysisDividerSummary: {
+    height: 0.4,
+    width: '100%',
+    backgroundColor: colors.text.grey,
+    marginBottom: 10,
+    marginTop: 12,
+  },
+  analysisSummaryContainer: {
+    marginBottom: 12,
+  },
   checkmarkContainer: {
     width: 24,
-    height: 24,
+    height: 17,
   },
   analysisTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    // fontWeight: 'bold',
     color: colors.text.white,
   },
   analysisSummary: {
     fontSize: 16,
-    color: colors.text.white,
+    color: colors.text.grey,
     lineHeight: 24,
-    marginBottom: 20,
+    // marginBottom: 10,
   },
   detailsList: {
     gap: 16,
@@ -1079,6 +1188,7 @@ export const resultsStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    // marginTop:2,
   },
   detailLabel: {
     fontSize: 14,
@@ -1099,7 +1209,7 @@ export const resultsStyles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 20,
     paddingHorizontal: 24,
     marginBottom: 16,
     gap: 8,
@@ -1118,11 +1228,14 @@ export const resultsStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'transparent',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 18,
     paddingHorizontal: 16,
     gap: 8,
+    marginBottom: 5,
+    borderWidth: 0.1,
+    borderColor: '#fff',
   },
   shareButtonText: {
     fontSize: 16,
@@ -1134,11 +1247,14 @@ export const resultsStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'transparent',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 18,
     paddingHorizontal: 16,
     gap: 8,
+    marginBottom: 5,
+    borderWidth: 0.1,
+    borderColor: '#fff',
   },
   saveButtonText: {
     fontSize: 16,

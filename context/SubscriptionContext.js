@@ -151,10 +151,26 @@ export function SubscriptionProvider({ children }) {
           setScansRemaining(result.tokenBalance);
         }
       } catch (error) {
-        console.error('Error decrementing token on backend:', error);
-        // Revert local state on error
-        setTokenBalance(tokenBalance);
-        setScansRemaining(scansRemaining);
+        // Handle "insufficient tokens" gracefully - this is expected business logic
+        if (error.status === 400 && error.responseData?.error === 'Insufficient tokens') {
+          // Update with actual balance from error response
+          if (error.responseData.tokenBalance !== undefined) {
+            setTokenBalance(error.responseData.tokenBalance);
+            setScansRemaining(error.responseData.tokenBalance);
+          } else {
+            // Revert local state if no balance info in error
+            setTokenBalance(tokenBalance);
+            setScansRemaining(scansRemaining);
+          }
+          // Log as warning instead of error since this is expected behavior
+          console.warn('Cannot decrement token: insufficient tokens remaining');
+        } else {
+          // Log other errors normally
+          console.error('Error decrementing token on backend:', error);
+          // Revert local state on error
+          setTokenBalance(tokenBalance);
+          setScansRemaining(scansRemaining);
+        }
       }
     }
   };
