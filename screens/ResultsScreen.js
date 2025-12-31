@@ -493,7 +493,7 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave 
                   strokeLinecap="round"
                 />
               </Svg>
-              <Text style={resultsStyles.saveButtonText}>Save</Text>
+              <Text style={resultsStyles.saveButtonText}>Save to History</Text>
             </TouchableOpacity>
           </View>
         </View>

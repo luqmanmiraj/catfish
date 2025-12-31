@@ -6,9 +6,11 @@ import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { historyStyles } from '../styles';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
-import { getScanHistory } from '../services/subscriptionApi';
+import { getScanHistory, updateScanHistory } from '../services/subscriptionApi';
 import { logDeviceMetadata } from '../utils/deviceLogger';
 import apiConfig from '../config/apiConfig';
+import LabelNoteModal from '../components/LabelNoteModal';
+import { Alert } from 'react-native';
 
 const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
   const insets = useSafeAreaInsets();
@@ -17,6 +19,8 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [showLabelNoteModal, setShowLabelNoteModal] = useState(false);
+  const [editingScan, setEditingScan] = useState(null);
   const hasLoggedAccess = useRef(false);
 
   // Map API status to UI format
@@ -97,6 +101,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
           const uiStatus = mapStatusToUI(scan.status, scan.deepfakeScore);
           return {
             id: scan.scanId,
+            scanId: scan.scanId,
             image: scan.s3Url || null,
             status: uiStatus.status,
             statusColor: uiStatus.statusColor,
@@ -106,6 +111,8 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
             description: uiStatus.description,
             deepfakeScore: scan.deepfakeScore,
             s3Url: scan.s3Url,
+            label: scan.label || null,
+            note: scan.note || null,
           };
         });
         
@@ -138,6 +145,37 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
 
   const onRefresh = () => {
     fetchScanHistory(true);
+  };
+
+  const handleEditScan = (scan) => {
+    setEditingScan(scan);
+    setShowLabelNoteModal(true);
+  };
+
+  const handleLabelNoteSave = async (label, note) => {
+    if (!editingScan || !accessToken) {
+      Alert.alert('Error', 'Unable to save. Please try again.');
+      setShowLabelNoteModal(false);
+      setEditingScan(null);
+      return;
+    }
+
+    try {
+      await updateScanHistory(accessToken, editingScan.scanId, label, note);
+      setShowLabelNoteModal(false);
+      setEditingScan(null);
+      
+      // Refresh the history list
+      await fetchScanHistory();
+    } catch (error) {
+      console.error('Error updating scan history:', error);
+      Alert.alert('Error', 'Failed to update scan. Please try again.');
+    }
+  };
+
+  const handleLabelNoteCancel = () => {
+    setShowLabelNoteModal(false);
+    setEditingScan(null);
   };
 
   const renderStatusIcon = (iconType, color) => {
@@ -287,20 +325,66 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
                 )}
               </View>
               <View style={historyStyles.cardContent}>
-                <View style={historyStyles.statusRow}>
-                  {renderStatusIcon(scan.statusIcon, scan.statusColor)}
-                  <Text style={[historyStyles.statusText, { color: scan.statusColor }]}>
-                    {scan.status}
-                  </Text>
+                <View style={historyStyles.cardHeader}>
+                  <View style={{ flex: 1 }}>
+                    <View style={historyStyles.statusRow}>
+                      {renderStatusIcon(scan.statusIcon, scan.statusColor)}
+                      <Text style={[historyStyles.statusText, { color: scan.statusColor }]}>
+                        {scan.status}
+                      </Text>
+                    </View>
+                    {scan.label && (
+                      <Text style={historyStyles.labelText} numberOfLines={1}>
+                        {scan.label}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={historyStyles.editButton}
+                    onPress={() => handleEditScan(scan)}
+                  >
+                    <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <Path
+                        d="M11.05 3.00002L4.20835 10.2417C3.95002 10.5167 3.70002 11.0584 3.65002 11.4334L3.34169 14.1334C3.23335 15.1084 3.93335 15.775 4.90002 15.6084L7.58335 15.15C7.95835 15.0834 8.48335 14.8084 8.74169 14.525L15.5834 7.28335C16.7667 6.03335 17.3 4.60835 15.4584 2.86668C13.625 1.14168 12.2334 1.75002 11.05 3.00002Z"
+                        stroke={colors.text.secondary}
+                        strokeWidth="1.5"
+                        strokeMiterlimit="10"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <Path
+                        d="M9.90833 4.20831C10.2667 6.50831 12.1333 8.26665 14.45 8.49998"
+                        stroke={colors.text.secondary}
+                        strokeWidth="1.5"
+                        strokeMiterlimit="10"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <Path
+                        d="M2.5 18.3333H17.5"
+                        stroke={colors.text.secondary}
+                        strokeWidth="1.5"
+                        strokeMiterlimit="10"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  </TouchableOpacity>
                 </View>
                 <View style={historyStyles.detailsRow}>
                   <Text style={historyStyles.percentage}>{scan.percentage}</Text>
                   <Text style={historyStyles.dot}>•</Text>
                   <Text style={historyStyles.date}>{scan.date}</Text>
                 </View>
-                <Text style={historyStyles.description} numberOfLines={2}>
-                  {scan.description}
-                </Text>
+                {scan.note ? (
+                  <Text style={historyStyles.noteText} numberOfLines={2}>
+                    {scan.note}
+                  </Text>
+                ) : (
+                  <Text style={historyStyles.description} numberOfLines={2}>
+                    {scan.description}
+                  </Text>
+                )}
               </View>
             </View>
           ))
@@ -357,6 +441,15 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
           <Text style={historyStyles.navText}>Profile</Text>
         </TouchableOpacity>
       </View>
+      
+      <LabelNoteModal
+        visible={showLabelNoteModal}
+        onSave={handleLabelNoteSave}
+        onCancel={handleLabelNoteCancel}
+        initialLabel={editingScan?.label || ''}
+        initialNote={editingScan?.note || ''}
+      />
+      
       <StatusBar style="light" />
     </View>
   );

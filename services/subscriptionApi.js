@@ -172,3 +172,39 @@ export async function getScanHistory(accessToken, limit = 50, lastEvaluatedKey =
   }
 }
 
+/**
+ * Update scan history item (label and note)
+ */
+export async function updateScanHistory(accessToken, scanId, label, note) {
+  try {
+    const url = `${API_BASE_URL}/scan-history`;
+    
+    // Log device info before request
+    await logDeviceMetadata(null, url);
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        scanId,
+        label: label || null,
+        note: note || null,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error updating scan history:', error);
+    throw error;
+  }
+}
+

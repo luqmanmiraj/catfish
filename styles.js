@@ -389,11 +389,32 @@ export const historyStyles = StyleSheet.create({
     justifyContent: 'space-between',
     
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
     gap: 6,
+  },
+  editButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  labelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.white,
+    marginTop: 4,
+  },
+  noteText: {
+    fontSize: 14,
+    color: colors.text.white,
+    lineHeight: 20,
+    marginTop: 4,
   },
   statusText: {
     fontSize: 14,

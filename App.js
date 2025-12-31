@@ -24,12 +24,14 @@ import CameraScanScreen from './screens/CameraScanScreen';
 import AnalysisScreen from './screens/AnalysisScreen';
 import ResultsScreen from './screens/ResultsScreen';
 import PaywallScreen from './components/PaywallScreen';
+import LabelNoteModal from './components/LabelNoteModal';
+import { getScanHistory, updateScanHistory } from './services/subscriptionApi';
 import styles from './styles';
 import colors from './colors';
 
 function AppContent() {
   const insets = useSafeAreaInsets();
-  const { isAuthenticated, isLoading, signOut, user, guestSignUp } = useAuth();
+  const { isAuthenticated, isLoading, signOut, user, guestSignUp, accessToken } = useAuth();
   const { 
     purchaseSubscription, 
     purchaseTokenPack,
@@ -62,6 +64,8 @@ function AppContent() {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [isCreatingGuest, setIsCreatingGuest] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [currentScanId, setCurrentScanId] = useState(null);
+  const [showLabelNoteModal, setShowLabelNoteModal] = useState(false);
 
   // Check if user is authenticated and RevenueCat is not configured
   // If so, show scan screen automatically on app start
@@ -261,8 +265,8 @@ function AppContent() {
     if (isAuthenticated && result) {
       try {
         await decrementToken();
-        // DEV MODE: Commented out refresh - using hardcoded values
-        // await refreshSubscriptionStatus();
+        // Refresh token balance to ensure sync
+        await refreshSubscriptionStatus();
       } catch (error) {
         console.error('Error decrementing token:', error);
         // Continue even if token decrement fails - scan was successful
@@ -327,8 +331,8 @@ function AppContent() {
   };
 
   const handleSave = async () => {
-    if (!selectedImageUri || !analysisResult) {
-      Alert.alert('Error', 'No image or analysis result to save');
+    if (!selectedImageUri) {
+      Alert.alert('Error', 'No image to save');
       return;
     }
 
@@ -690,13 +694,20 @@ function AppContent() {
 
     if (showResults) {
       return (
-        <ResultsScreen
-          imageUri={selectedImageUri}
-          analysisResult={analysisResult}
-          onScanAgain={handleScanAgain}
-          onShare={handleShare}
-          onSave={handleSave}
-        />
+        <>
+          <ResultsScreen
+            imageUri={selectedImageUri}
+            analysisResult={analysisResult}
+            onScanAgain={handleScanAgain}
+            onShare={handleShare}
+            onSave={handleSave}
+          />
+          <LabelNoteModal
+            visible={showLabelNoteModal}
+            onSave={handleLabelNoteSave}
+            onCancel={handleLabelNoteCancel}
+          />
+        </>
       );
     }
 
