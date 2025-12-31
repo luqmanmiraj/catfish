@@ -185,7 +185,7 @@ export function SubscriptionProvider({ children }) {
       const customerInfo = await RevenueCatService.purchasePackage(packageToPurchase);
       
       // Extract pack ID from package identifier
-      // Package identifiers should be: pack_5, pack_20, pack_50
+      // Package identifiers should be: pack_15, pack_50, pack_100
       const packId = packageToPurchase.identifier || packageToPurchase.storeProduct?.identifier;
       
       // Notify backend about the purchase to add tokens

@@ -31,9 +31,9 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
   
   // Token pack configurations
   const TOKEN_PACKS = {
-    pack_5: { tokens: 5, price: 4.99, name: '5 Scans' },
-    pack_20: { tokens: 20, price: 14.99, name: '20 Scans' },
-    pack_50: { tokens: 50, price: 29.99, name: '50 Scans' },
+    pack_15: { tokens: 15, price: 4.99, name: '15 Scans' },
+    pack_50: { tokens: 50, price: 9.99, name: '50 Scans' },
+    pack_100: { tokens: 100, price: 16.99, name: '100 Scans' },
   };
 
   useEffect(() => {
@@ -52,31 +52,31 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       
       // Map packages to token pack types
       const tokenPackages = {
-        pack_5: null,
-        pack_20: null,
+        pack_15: null,
         pack_50: null,
+        pack_100: null,
       };
       
       allPackages.forEach(pkg => {
         const identifier = (pkg.identifier || pkg.storeProduct?.identifier || '').toLowerCase();
-        if (identifier.includes('pack_5') || identifier.includes('5') || identifier.includes('five')) {
-          tokenPackages.pack_5 = pkg;
-        } else if (identifier.includes('pack_20') || identifier.includes('20') || identifier.includes('twenty')) {
-          tokenPackages.pack_20 = pkg;
+        if (identifier.includes('pack_15') || identifier.includes('15') || identifier.includes('fifteen')) {
+          tokenPackages.pack_15 = pkg;
         } else if (identifier.includes('pack_50') || identifier.includes('50') || identifier.includes('fifty')) {
           tokenPackages.pack_50 = pkg;
+        } else if (identifier.includes('pack_100') || identifier.includes('100') || identifier.includes('hundred')) {
+          tokenPackages.pack_100 = pkg;
         }
       });
       
       setPackagesByType(tokenPackages);
 
-      // Auto-select pack_20 if available (best value), otherwise pack_5, then pack_50
-      if (tokenPackages.pack_20) {
-        setSelectedPackage(tokenPackages.pack_20);
-      } else if (tokenPackages.pack_5) {
-        setSelectedPackage(tokenPackages.pack_5);
-      } else if (tokenPackages.pack_50) {
+      // Auto-select pack_50 if available (best value), otherwise pack_15, then pack_100
+      if (tokenPackages.pack_50) {
         setSelectedPackage(tokenPackages.pack_50);
+      } else if (tokenPackages.pack_15) {
+        setSelectedPackage(tokenPackages.pack_15);
+      } else if (tokenPackages.pack_100) {
+        setSelectedPackage(tokenPackages.pack_100);
       } else if (allPackages.length > 0) {
         setSelectedPackage(allPackages[0]);
       }
@@ -311,9 +311,9 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
         </View>
 
         <View style={styles.packagesIconContainer}>
-          {renderPackageIcon(packagesByType.pack_5, 5, false)}
-          {renderPackageIcon(packagesByType.pack_20, 20, true)}
-          {renderPackageIcon(packagesByType.pack_50, 50, false)}
+          {renderPackageIcon(packagesByType.pack_15, 15, false)}
+          {renderPackageIcon(packagesByType.pack_50, 50, true)}
+          {renderPackageIcon(packagesByType.pack_100, 100, false)}
         </View>
 
         {packages.length === 0 && (
