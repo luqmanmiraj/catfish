@@ -113,7 +113,15 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
             s3Url: scan.s3Url,
             label: scan.label || null,
             note: scan.note || null,
+            timestamp: scan.timestamp || scan.createdAt, // Keep timestamp for sorting
           };
+        });
+        
+        // Sort by timestamp (newest first) as a fallback in case backend doesn't sort
+        mappedHistory.sort((a, b) => {
+          const timeA = new Date(a.timestamp || 0).getTime();
+          const timeB = new Date(b.timestamp || 0).getTime();
+          return timeB - timeA; // Descending order (newest first)
         });
         
         console.log(`✅ Loaded ${mappedHistory.length} scan(s) from history`);

@@ -10,9 +10,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 import * as RevenueCatService from './services/revenueCatService';
 import CatfishLogo from './components/CatfishLogo';
+import SignInButton from './components/SignInButton';
+import SignUpButton from './components/SignUpButton';
+import ContinueAsGuestButton from './components/ContinueAsGuestButton';
 import PermissionsScreen from './screens/PermissionsScreen';
 import SignInScreen from './screens/SignInScreen';
 import SignUpScreen from './screens/SignUpScreen';
+import TermsScreen from './screens/TermsScreen';
 import VerificationScreen from './screens/VerificationScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
@@ -26,6 +30,7 @@ import ResultsScreen from './screens/ResultsScreen';
 import PaywallScreen from './components/PaywallScreen';
 import LabelNoteModal from './components/LabelNoteModal';
 import { getScanHistory, updateScanHistory } from './services/subscriptionApi';
+import { populateGalleryWithSamples } from './services/galleryService';
 import styles from './styles';
 import colors from './colors';
 
@@ -48,6 +53,7 @@ function AppContent() {
   const [showPermissions, setShowPermissions] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -66,6 +72,26 @@ function AppContent() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [currentScanId, setCurrentScanId] = useState(null);
   const [showLabelNoteModal, setShowLabelNoteModal] = useState(false);
+
+  // Populate gallery with sample images on first launch
+  useEffect(() => {
+    const populateGallery = async () => {
+      try {
+        const result = await populateGalleryWithSamples();
+        if (result.success) {
+          console.log('Gallery populated successfully:', result.message);
+        } else {
+          console.log('Gallery population skipped or failed:', result.message);
+        }
+      } catch (error) {
+        console.error('Error populating gallery:', error);
+        // Don't block app startup if gallery population fails
+      }
+    };
+
+    // Populate gallery on app start (runs once)
+    populateGallery();
+  }, []); // Empty dependency array - runs only once on mount
 
   // Check if user is authenticated and RevenueCat is not configured
   // If so, show scan screen automatically on app start
@@ -220,6 +246,27 @@ function AppContent() {
     }
   };
 
+  const handleLabelNoteSave = async (label, note) => {
+    if (!currentScanId || !accessToken) {
+      Alert.alert('Error', 'Unable to save. Please try again.');
+      setShowLabelNoteModal(false);
+      return;
+    }
+
+    try {
+      await updateScanHistory(accessToken, currentScanId, label, note);
+      setShowLabelNoteModal(false);
+      Alert.alert('Success', 'Scan saved to history successfully.');
+    } catch (error) {
+      console.error('Error updating scan history:', error);
+      Alert.alert('Error', 'Failed to save scan. Please try again.');
+    }
+  };
+
+  const handleLabelNoteCancel = () => {
+    setShowLabelNoteModal(false);
+  };
+
   const handleTapToScan = async () => {
     // Check if user has tokens before allowing scan
     if (isAuthenticated) {
@@ -285,6 +332,11 @@ function AppContent() {
 
   const handleScanAgain = () => {
     setShowResults(false);
+  };
+
+  const handleCloseResults = () => {
+    setShowResults(false);
+    setShowScanScreen(true);
     setShowScanScreen(true);
   };
 
@@ -671,12 +723,21 @@ function AppContent() {
       );
     }
 
+    if (showTerms) {
+      return (
+        <TermsScreen
+          onClose={() => setShowTerms(false)}
+        />
+      );
+    }
+
     if (showSignUp) {
       return (
         <SignUpScreen
           onSignIn={handleBackToSignIn}
           onClose={handleCloseAuth}
           onVerificationSent={handleVerificationSent}
+          onViewTerms={() => setShowTerms(true)}
         />
       );
     }
@@ -701,6 +762,7 @@ function AppContent() {
             onScanAgain={handleScanAgain}
             onShare={handleShare}
             onSave={handleSave}
+            onClose={handleCloseResults}
           />
           <LabelNoteModal
             visible={showLabelNoteModal}
@@ -806,13 +868,15 @@ function AppContent() {
           </View>
         </View>
         <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 30) - 5 }]}>
-          <TouchableOpacity 
-            style={styles.getStartedButton}
-            onPress={handleGetStarted}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.getStartedText}>Get Started</Text>
-          </TouchableOpacity>
+          <View style={{ width: '100%', maxWidth: 345, alignItems: 'center' }}>
+            <SignUpButton onPress={handleSignUp} style={{ marginBottom: 12, width: '100%' }} />
+            <SignInButton onPress={handleSignIn} style={{ marginBottom: 12, width: '100%' }} />
+            <ContinueAsGuestButton 
+              onPress={handleContinueAsGuest} 
+              isLoading={isCreatingGuest}
+              style={{ width: '100%' }} 
+            />
+          </View>
         </View>
         <StatusBar style="light" />
       </View>

@@ -5,7 +5,7 @@ import Svg, { Path, Circle, Line, G, Rect, Defs, LinearGradient, Stop } from 're
 import { resultsStyles } from '../styles';
 import colors from '../colors';
 
-const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave }) => {
+const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave, onClose }) => {
   // Debug: Log the analysis result to see what we're receiving
   console.log('ResultsScreen - Full analysisResult:', JSON.stringify(analysisResult, null, 2));
   console.log('ResultsScreen - analysisResult?.status:', analysisResult?.status);
@@ -375,6 +375,16 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave 
 
   return (
     <View style={resultsStyles.container}>
+      {/* Close Button */}
+      {onClose && (
+        <TouchableOpacity
+          style={resultsStyles.closeButton}
+          onPress={onClose}
+          activeOpacity={0.8}
+        >
+          <Text style={resultsStyles.closeButtonText}>✕</Text>
+        </TouchableOpacity>
+      )}
       <ScrollView style={resultsStyles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Scan Summary Section */}
         <View style={resultsStyles.summarySection}>

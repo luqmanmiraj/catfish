@@ -15,12 +15,14 @@ import { useAuth } from '../context/AuthContext';
 import colors from '../colors';
 import { signUpStyles } from '../styles';
 
-const SignUpScreen = ({ onSignIn, onClose, onVerificationSent }) => {
+const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAgeConfirmed, setIsAgeConfirmed] = useState(false);
+  const [isTermsAccepted, setIsTermsAccepted] = useState(false);
   const { signUp, resendConfirmationCode } = useAuth();
 
   const validateEmail = (email) => {
@@ -90,6 +92,16 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent }) => {
 
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (!isAgeConfirmed) {
+      Alert.alert('Error', 'You must confirm that you are 18 years or older');
+      return;
+    }
+
+    if (!isTermsAccepted) {
+      Alert.alert('Error', 'You must accept the Terms and Conditions to continue');
       return;
     }
 
@@ -229,6 +241,41 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent }) => {
               textContentType="newPassword"
               editable={!isLoading}
             />
+          </View>
+
+          {/* Checkboxes */}
+          <View style={signUpStyles.checkboxContainer}>
+            <TouchableOpacity
+              style={signUpStyles.checkboxRow}
+              onPress={() => setIsAgeConfirmed(!isAgeConfirmed)}
+              activeOpacity={0.7}
+              disabled={isLoading}
+            >
+              <View style={[signUpStyles.checkbox, isAgeConfirmed && signUpStyles.checkboxChecked]}>
+                {isAgeConfirmed && <Text style={signUpStyles.checkmark}>✓</Text>}
+              </View>
+              <Text style={signUpStyles.checkboxLabel}>I am 18 years or older</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={signUpStyles.checkboxRow}
+              onPress={() => setIsTermsAccepted(!isTermsAccepted)}
+              activeOpacity={0.7}
+              disabled={isLoading}
+            >
+              <View style={[signUpStyles.checkbox, isTermsAccepted && signUpStyles.checkboxChecked]}>
+                {isTermsAccepted && <Text style={signUpStyles.checkmark}>✓</Text>}
+              </View>
+              <View style={signUpStyles.checkboxLabelContainer}>
+                <Text style={signUpStyles.checkboxLabel}>I have read and agree to the </Text>
+                <TouchableOpacity
+                  onPress={() => onViewTerms && onViewTerms()}
+                  disabled={isLoading}
+                >
+                  <Text style={signUpStyles.termsLink}>Terms and Conditions</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
