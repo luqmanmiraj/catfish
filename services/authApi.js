@@ -108,13 +108,13 @@ export async function signIn(email, password) {
 
 /**
  * Refresh access token
- * @param {string} refreshToken - Refresh token
+ * @param {string} token - Refresh token
  * @returns {Promise<Object>} New tokens
  */
-export async function refreshToken(refreshToken) {
+export async function refreshToken(token) {
   return apiRequest('/auth/refresh-token', {
     method: 'POST',
-    body: JSON.stringify({ refreshToken }),
+    body: JSON.stringify({ refreshToken: token }),
   });
 }
 

@@ -186,13 +186,13 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
           contentContainerStyle={cameraScanStyles.bottomScrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={cameraScanStyles.dialogTitle}>Choose Image Source</Text>
+          <Text style={cameraScanStyles.dialogTitle}>Choose Image</Text>
           <Text style={cameraScanStyles.dialogDescription}>
-            Select how you want to provide an image for scanning
+            Upload Image of a Potential Date
           </Text>
 
-          {/* Take Photo Button */}
-          <TouchableOpacity
+          {/* Take Photo Button - Disabled/Hidden for now */}
+          {/* <TouchableOpacity
             style={cameraScanStyles.takePhotoButton}
             onPress={openCamera}
             activeOpacity={0.8}
@@ -204,7 +204,7 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
               />
             </Svg>
             <Text style={cameraScanStyles.takePhotoText}>Take Photo</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {/* Upload from Gallery Button */}
           <TouchableOpacity
@@ -218,7 +218,7 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
                 fill="white"
               />
             </Svg>
-            <Text style={cameraScanStyles.uploadGalleryText}>Upload from Gallery</Text>
+            <Text style={cameraScanStyles.uploadGalleryText}>Upload Image</Text>
           </TouchableOpacity>
 
           {/* Cancel Button */}

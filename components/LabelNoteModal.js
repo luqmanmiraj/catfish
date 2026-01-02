@@ -16,7 +16,7 @@ import colors from '../colors';
  * LabelNoteModal Component
  * Modal for adding/editing label and note for a scan
  */
-export default function LabelNoteModal({ visible, onSave, onCancel, initialLabel = '', initialNote = '' }) {
+export default function LabelNoteModal({ visible, onSave, onCancel, initialLabel = '', initialNote = '', title = 'Save to History' }) {
   const insets = useSafeAreaInsets();
   const [label, setLabel] = useState(initialLabel);
   const [note, setNote] = useState(initialNote);
@@ -29,7 +29,7 @@ export default function LabelNoteModal({ visible, onSave, onCancel, initialLabel
 
   const handleSave = () => {
     if (onSave) {
-      onSave(label.trim(), note.trim());
+      onSave(label.trim(), ''); // Note field is hidden, so pass empty string
     }
   };
 
@@ -55,8 +55,8 @@ export default function LabelNoteModal({ visible, onSave, onCancel, initialLabel
       >
         <View style={[styles.content, { paddingTop: Math.max(insets.top, 20) }]}>
           <View style={styles.header}>
-            <Text style={styles.title}>Save to History</Text>
-            <Text style={styles.subtitle}>Add a name and note for this scan (optional)</Text>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.subtitle}>Add a name for this scan (optional)</Text>
           </View>
 
           <View style={styles.form}>
@@ -73,7 +73,8 @@ export default function LabelNoteModal({ visible, onSave, onCancel, initialLabel
               />
             </View>
 
-            <View style={styles.inputContainer}>
+            {/* Note field hidden/commented out - keeping only label */}
+            {/* <View style={styles.inputContainer}>
               <Text style={styles.label}>Note</Text>
               <TextInput
                 style={[styles.textInput, styles.textArea]}
@@ -86,7 +87,7 @@ export default function LabelNoteModal({ visible, onSave, onCancel, initialLabel
                 maxLength={500}
                 textAlignVertical="top"
               />
-            </View>
+            </View> */}
           </View>
 
           <View style={styles.buttonContainer}>

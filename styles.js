@@ -190,6 +190,19 @@ export const scanStyles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000000',
   },
+  headerRight: {
+    alignItems: 'flex-end',
+  },
+  howItWorksButton: {
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  howItWorksText: {
+    fontSize: 12,
+    color: colors.accent.lightGreyBlue,
+    textDecorationLine: 'underline',
+  },
   contentArea: {
     flex: 1,
     alignItems: 'center',

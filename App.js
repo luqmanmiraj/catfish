@@ -17,6 +17,8 @@ import PermissionsScreen from './screens/PermissionsScreen';
 import SignInScreen from './screens/SignInScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import TermsScreen from './screens/TermsScreen';
+import PrivacyScreen from './screens/PrivacyScreen';
+import HowItWorksScreen from './screens/HowItWorksScreen';
 import VerificationScreen from './screens/VerificationScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
@@ -29,7 +31,7 @@ import AnalysisScreen from './screens/AnalysisScreen';
 import ResultsScreen from './screens/ResultsScreen';
 import PaywallScreen from './components/PaywallScreen';
 import LabelNoteModal from './components/LabelNoteModal';
-import { getScanHistory, updateScanHistory } from './services/subscriptionApi';
+import { getScanHistory, updateScanHistory, createScanHistory } from './services/subscriptionApi';
 import { populateGalleryWithSamples } from './services/galleryService';
 import styles from './styles';
 import colors from './colors';
@@ -54,6 +56,8 @@ function AppContent() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -73,23 +77,33 @@ function AppContent() {
   const [currentScanId, setCurrentScanId] = useState(null);
   const [showLabelNoteModal, setShowLabelNoteModal] = useState(false);
 
-  // Populate gallery with sample images on first launch
+  // Populate gallery with sample images on app launch
+  // This will run on every fresh install (AsyncStorage is empty on first launch)
+  // On subsequent app opens, it will skip if already populated
   useEffect(() => {
     const populateGallery = async () => {
       try {
+        console.log('Checking if gallery needs to be populated with sample images...');
         const result = await populateGalleryWithSamples();
         if (result.success) {
-          console.log('Gallery populated successfully:', result.message);
+          if (result.count > 0) {
+            console.log(`✅ Gallery populated successfully: ${result.message}`);
+          } else {
+            console.log('ℹ️ Gallery population skipped (already populated)');
+          }
         } else {
-          console.log('Gallery population skipped or failed:', result.message);
+          console.warn('⚠️ Gallery population failed:', result.message);
+          // Don't block app if gallery population fails - app can still function
         }
       } catch (error) {
-        console.error('Error populating gallery:', error);
+        console.error('❌ Error populating gallery:', error);
         // Don't block app startup if gallery population fails
       }
     };
 
-    // Populate gallery on app start (runs once)
+    // Populate gallery on app start
+    // On fresh install: AsyncStorage is empty → gallery gets populated
+    // On subsequent opens: AsyncStorage has flag → gallery population skipped
     populateGallery();
   }, []); // Empty dependency array - runs only once on mount
 
@@ -178,7 +192,7 @@ function AppContent() {
 
   /**
    * Handle successful sign-in
-   * Show profile page after successful sign in
+   * Show scan screen after successful sign in
    */
   const handleSignInSuccess = async () => {
     // Close sign-in screen
@@ -187,9 +201,9 @@ function AppContent() {
     setShowVerification(false);
     setShowPermissions(false);
 
-    // Show profile screen after successful sign in
-    setShowProfileScreen(true);
-    setShowScanScreen(false);
+    // Show scan screen after successful sign in
+    setShowScanScreen(true);
+    setShowProfileScreen(false);
     setShowHistoryScreen(false);
     setShowAboutScreen(false);
   };
@@ -247,24 +261,74 @@ function AppContent() {
   };
 
   const handleLabelNoteSave = async (label, note) => {
-    if (!currentScanId || !accessToken) {
-      Alert.alert('Error', 'Unable to save. Please try again.');
+    if (!accessToken) {
+      Alert.alert('Error', 'Unable to save. Please sign in to save scans to history.');
       setShowLabelNoteModal(false);
       return;
     }
 
     try {
-      await updateScanHistory(accessToken, currentScanId, label, note);
-      setShowLabelNoteModal(false);
-      Alert.alert('Success', 'Scan saved to history successfully.');
+      // If currentScanId exists, update existing scan (from history edit)
+      if (currentScanId) {
+        await updateScanHistory(accessToken, currentScanId, label, note);
+        setShowLabelNoteModal(false);
+        setCurrentScanId(null);
+        Alert.alert('Success', 'Scan updated successfully.');
+      } 
+      // Otherwise, create new scan history entry (from "Save to History" button)
+      else if (analysisResult && selectedImageUri) {
+        // Extract data from analysis result
+        const scanData = {
+          success: true,
+          status: analysisResult.status || 'unknown',
+          deepfakeScore: analysisResult.deepfakeScore || analysisResult.confidence || null,
+          aiProbability: analysisResult.aiProbability || null,
+          humanProbability: analysisResult.humanProbability || null,
+          sightengineRequestId: analysisResult.sightengineRequestId || analysisResult.requestId || null,
+          gowinstonRequestId: analysisResult.gowinstonRequestId || analysisResult.requestId || null,
+          s3Url: analysisResult.s3Url || null,
+          requestId: analysisResult.requestId || null,
+          source: analysisResult.source || 'image-analysis',
+          label: label || null,
+          note: note || null,
+        };
+
+        const result = await createScanHistory(accessToken, scanData);
+        setShowLabelNoteModal(false);
+        setCurrentScanId(null);
+        
+        // Navigate to history screen after successful save
+        setShowResults(false);
+        setShowScanScreen(false);
+        setShowAboutScreen(false);
+        setShowProfileScreen(false);
+        setShowCameraScan(false);
+        setShowHistoryScreen(true);
+        
+        Alert.alert('Success', 'Scan saved to history successfully.');
+      } else {
+        Alert.alert('Error', 'No scan data available to save.');
+        setShowLabelNoteModal(false);
+      }
     } catch (error) {
-      console.error('Error updating scan history:', error);
+      console.error('Error saving scan history:', error);
       Alert.alert('Error', 'Failed to save scan. Please try again.');
     }
   };
 
   const handleLabelNoteCancel = () => {
     setShowLabelNoteModal(false);
+    setCurrentScanId(null); // Clear scanId when canceling
+  };
+
+  const handleSaveToHistory = () => {
+    if (!isAuthenticated) {
+      Alert.alert('Sign In Required', 'Please sign in to save scans to history.');
+      return;
+    }
+    // Open the label/note modal for saving
+    setCurrentScanId(null); // Clear any existing scanId to indicate this is a new save
+    setShowLabelNoteModal(true);
   };
 
   const handleTapToScan = async () => {
@@ -306,6 +370,7 @@ function AppContent() {
   const handleAnalysisComplete = async (result) => {
     setAnalysisResult(result);
     console.log('Analysis complete - showing results screen');
+    console.log('Analysis result data:', result);
     
     // Decrement token after successful scan (if authenticated)
     // DEV MODE: Only local decrement - no backend sync
@@ -320,6 +385,9 @@ function AppContent() {
       }
     }
     
+    // Clear any existing scanId when starting a new scan
+    setCurrentScanId(null);
+    
     setShowAnalysis(false);
     setShowResults(true);
     // Reset other screen states
@@ -332,6 +400,16 @@ function AppContent() {
 
   const handleScanAgain = () => {
     setShowResults(false);
+    setShowScanScreen(true);
+    // Clear any previous scan data
+    setSelectedImageUri(null);
+    setAnalysisResult(null);
+    // Ensure other screens are closed
+    setShowHistoryScreen(false);
+    setShowAboutScreen(false);
+    setShowProfileScreen(false);
+    setShowCameraScan(false);
+    setShowAnalysis(false);
   };
 
   const handleCloseResults = () => {
@@ -731,6 +809,22 @@ function AppContent() {
       );
     }
 
+    if (showPrivacy) {
+      return (
+        <PrivacyScreen
+          onClose={() => setShowPrivacy(false)}
+        />
+      );
+    }
+
+    if (showHowItWorks) {
+      return (
+        <HowItWorksScreen
+          onClose={() => setShowHowItWorks(false)}
+        />
+      );
+    }
+
     if (showSignUp) {
       return (
         <SignUpScreen
@@ -738,6 +832,7 @@ function AppContent() {
           onClose={handleCloseAuth}
           onVerificationSent={handleVerificationSent}
           onViewTerms={() => setShowTerms(true)}
+          onViewPrivacy={() => setShowPrivacy(true)}
         />
       );
     }
@@ -761,7 +856,7 @@ function AppContent() {
             analysisResult={analysisResult}
             onScanAgain={handleScanAgain}
             onShare={handleShare}
-            onSave={handleSave}
+            onSave={handleSaveToHistory}
             onClose={handleCloseResults}
           />
           <LabelNoteModal
@@ -836,6 +931,7 @@ function AppContent() {
           onProfileClick={handleProfileClick}
           isAuthenticated={isAuthenticated}
           user={user}
+          onHowItWorks={() => setShowHowItWorks(true)}
         />
       );
     }
@@ -854,6 +950,24 @@ function AppContent() {
       );
     }
 
+    // Default: Show landing screen for unauthenticated users
+    // For authenticated users, show scan screen as default
+    if (isAuthenticated) {
+      // If authenticated but no screen is showing, show scan screen
+      return (
+        <ScanScreen
+          onTapToScan={handleTapToScan}
+          onUpgrade={handleUpgrade}
+          onHistoryClick={handleHistoryClick}
+          onAboutClick={handleAboutClick}
+          onProfileClick={handleProfileClick}
+          isAuthenticated={isAuthenticated}
+          user={user}
+        />
+      );
+    }
+
+    // Landing screen for unauthenticated users
     return (
       <View style={styles.container}>
         <View style={styles.contentContainer}>

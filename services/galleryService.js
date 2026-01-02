@@ -114,19 +114,24 @@ async function saveImageToGallery(fileUri) {
 /**
  * Populate gallery with sample images
  * This function will:
- * 1. Check if already populated
+ * 1. Check if already populated (using AsyncStorage - empty on fresh install)
  * 2. Request permissions
- * 3. Download sample images from bundle
+ * 3. Copy sample images from app bundle
  * 4. Save them to device gallery
+ * 
+ * Note: This runs on every fresh app install because AsyncStorage is empty on first launch
  */
 export async function populateGalleryWithSamples() {
   try {
     // Check if already populated
+    // On fresh install, AsyncStorage is empty, so this will return false
     const alreadyPopulated = await isGalleryPopulated();
     if (alreadyPopulated) {
-      console.log('Gallery already populated with sample images');
+      console.log('Gallery already populated with sample images (skipping)');
       return { success: true, message: 'Gallery already populated' };
     }
+
+    console.log('Fresh install detected - populating gallery with sample images from app bundle');
 
     // Request media library permission
     const hasPermission = await requestMediaLibraryPermission();

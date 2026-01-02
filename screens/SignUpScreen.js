@@ -15,7 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import colors from '../colors';
 import { signUpStyles } from '../styles';
 
-const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms }) => {
+const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onViewPrivacy }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -272,7 +272,14 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms }) =>
                   onPress={() => onViewTerms && onViewTerms()}
                   disabled={isLoading}
                 >
-                  <Text style={signUpStyles.termsLink}>Terms and Conditions</Text>
+                  <Text style={signUpStyles.termsLink}>Terms</Text>
+                </TouchableOpacity>
+                <Text style={signUpStyles.checkboxLabel}> and </Text>
+                <TouchableOpacity
+                  onPress={() => onViewPrivacy && onViewPrivacy()}
+                  disabled={isLoading}
+                >
+                  <Text style={signUpStyles.termsLink}>Privacy</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>

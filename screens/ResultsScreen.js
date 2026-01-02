@@ -462,7 +462,7 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
                 </G>
               </Svg>
             </View>
-            <Text style={resultsStyles.scanAgainText}>Scan Again</Text>
+            <Text style={resultsStyles.scanAgainText}>Check Another Photo</Text>
           </TouchableOpacity>
 
           <View style={resultsStyles.bottomActions}>

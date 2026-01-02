@@ -83,7 +83,24 @@ const TermsScreen = ({ onClose }) => {
             These terms and conditions are governed by and construed in accordance with applicable laws. Any disputes relating to these terms and conditions will be subject to the exclusive jurisdiction of the courts.
           </Text>
 
-          <Text style={termsStyles.sectionTitle}>10. Contact Information</Text>
+          <Text style={termsStyles.sectionTitle}>10. DISCLAIMER</Text>
+          <Text style={termsStyles.paragraph}>
+            This application is a verification and risk-reduction tool only. It does not guarantee the identity, intent, or behavior of any person.
+          </Text>
+          <Text style={termsStyles.paragraph}>
+            The application does not perform background checks, criminal history checks, or access law-enforcement or government databases.
+          </Text>
+          <Text style={termsStyles.paragraph}>
+            Users are solely responsible for their own decisions and interactions. The application and its operators are not responsible for any outcomes resulting from use of the service.
+          </Text>
+          <Text style={termsStyles.paragraph}>
+            By using the application, you confirm that you have the right and consent to submit any images, videos, or information provided.
+          </Text>
+          <Text style={termsStyles.paragraph}>
+            Submitted data is used solely for verification purposes and is handled in accordance with the application's privacy practices.
+          </Text>
+
+          <Text style={termsStyles.sectionTitle}>11. Contact Information</Text>
           <Text style={termsStyles.paragraph}>
             If you have any questions about these Terms and Conditions, please contact us through the application support channels.
           </Text>
@@ -171,4 +188,5 @@ const termsStyles = StyleSheet.create({
 });
 
 export default TermsScreen;
+
 

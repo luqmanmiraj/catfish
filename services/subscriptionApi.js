@@ -173,6 +173,38 @@ export async function getScanHistory(accessToken, limit = 50, lastEvaluatedKey =
 }
 
 /**
+ * Create new scan history entry
+ */
+export async function createScanHistory(accessToken, scanData) {
+  try {
+    const url = `${API_BASE_URL}/scan-history`;
+    
+    // Log device info before request
+    await logDeviceMetadata(null, url);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(scanData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error creating scan history:', error);
+    throw error;
+  }
+}
+
+/**
  * Update scan history item (label and note)
  */
 export async function updateScanHistory(accessToken, scanId, label, note) {

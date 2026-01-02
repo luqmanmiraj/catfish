@@ -110,10 +110,15 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
           setProgress(100);
           if (onComplete) {
             console.log('Calling onComplete callback with Lambda analysis result');
-            // Pass the analysis object from Lambda response
-            // Lambda returns: { success: true, s3Url: "...", analysis: {...} }
-            // We pass the full analysis object which contains the Hive API response
-            onComplete(json.analysis || json);
+            // Pass the full Lambda response including s3Url and requestId for history saving
+            // Lambda returns: { success: true, s3Url: "...", analysis: {...}, requestId: "..." }
+            // Merge analysis data with response metadata
+            const result = {
+              ...(json.analysis || json),
+              s3Url: json.s3Url || null,
+              requestId: json.requestId || null,
+            };
+            onComplete(result);
           }
         });
       } catch (error) {
