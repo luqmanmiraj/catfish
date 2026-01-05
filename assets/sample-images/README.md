@@ -4,20 +4,31 @@ This folder contains sample images that will be automatically added to the devic
 
 ## Instructions
 
-1. Place your sample human images (JPG or PNG format) in this folder
-2. Name them as: `person1.jpg`, `person2.jpg`, `person3.jpg`, `person4.jpg`, `person5.jpg`
+1. Place your sample human images (JPG, PNG, or WEBP format) in this folder
+2. Name them as: `person1.jpg`, `person2.jpg`, etc.
 3. The images will be automatically copied to the device gallery on first app launch
-4. Supported formats: JPG, PNG
+4. Supported formats: JPG, PNG, WEBP
 5. Recommended: Use images of humans (portraits, full body, different angles)
 
 ## Current Images
 
-The following images are expected:
+The following 16 images are included:
 - `person1.jpg`
 - `person2.jpg`
 - `person3.jpg`
 - `person4.jpg`
 - `person5.jpg`
+- `person6.jpg`
+- `person7.jpg`
+- `person8.jpg`
+- `person9.png`
+- `person10.jpg`
+- `person11.webp`
+- `person12.webp`
+- `person13.webp`
+- `person14.webp`
+- `person15.jpg`
+- `person16.jpg`
 
 ## Note
 

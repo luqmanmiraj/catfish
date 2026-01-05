@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity } from 'react-native';
+import { Text, View, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path, G, Defs, LinearGradient as SvgLinearGradient, Stop, Filter, FeFlood, FeColorMatrix, FeMorphology, FeOffset, FeGaussianBlur, FeComposite, FeBlend } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { scanStyles } from '../styles';
 import colors from '../colors';
 import { useSubscription } from '../context/SubscriptionContext';
@@ -11,12 +12,42 @@ import { useSubscription } from '../context/SubscriptionContext';
 const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onProfileClick, isAuthenticated, user, onHowItWorks }) => {
   const insets = useSafeAreaInsets();
   const { scansRemaining } = useSubscription();
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   // Check if user is a guest
   const isGuest = user?.email?.includes('@temp.catfish.app') || user?.['custom:is_guest'] === 'true';
   
   // Get user email or name for display (hide device ID for guests)
   const userDisplayName = isGuest ? 'Guest Account' : (user?.email || user?.name);
+  
+  // Check if this is the first time visiting the scan screen
+  useEffect(() => {
+    const checkFirstVisit = async () => {
+      try {
+        const hasSeenWelcome = await AsyncStorage.getItem('@catfish:hasSeenWelcome');
+        if (!hasSeenWelcome) {
+          // Small delay to ensure screen is rendered
+          setTimeout(() => {
+            setShowWelcomeModal(true);
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Error checking welcome status:', error);
+      }
+    };
+
+    checkFirstVisit();
+  }, []);
+
+  const handleWelcomeClose = async () => {
+    try {
+      await AsyncStorage.setItem('@catfish:hasSeenWelcome', 'true');
+      setShowWelcomeModal(false);
+    } catch (error) {
+      console.error('Error saving welcome status:', error);
+      setShowWelcomeModal(false);
+    }
+  };
   
   // Determine what to show in the header
   const getHeaderText = () => {
@@ -218,9 +249,145 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
         </TouchableOpacity>
       </View>
       <StatusBar style="light" />
+
+      {/* Welcome Modal for First-Time Visitors */}
+      <Modal
+        visible={showWelcomeModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleWelcomeClose}
+        transparent={false}
+      >
+        <View style={[welcomeModalStyles.container, { paddingTop: Math.max(insets.top, 20) }]}>
+          <View style={welcomeModalStyles.header}>
+            <Text style={welcomeModalStyles.title}>Welcome to Catfish Crasher! 🎉</Text>
+          </View>
+
+          <View style={welcomeModalStyles.content}>
+            <Text style={welcomeModalStyles.welcomeText}>
+              We're excited to have you here! Get started with 3 free scans on signup.
+            </Text>
+
+            <View style={welcomeModalStyles.featureSection}>
+              <Text style={welcomeModalStyles.sectionTitle}>How It Works:</Text>
+              <View style={welcomeModalStyles.featureItem}>
+                <Text style={welcomeModalStyles.bullet}>•</Text>
+                <Text style={welcomeModalStyles.featureText}>Tap the camera icon to scan an image</Text>
+              </View>
+              <View style={welcomeModalStyles.featureItem}>
+                <Text style={welcomeModalStyles.bullet}>•</Text>
+                <Text style={welcomeModalStyles.featureText}>Our AI analyzes the image for deepfakes and AI-generated content</Text>
+              </View>
+              <View style={welcomeModalStyles.featureItem}>
+                <Text style={welcomeModalStyles.bullet}>•</Text>
+                <Text style={welcomeModalStyles.featureText}>Get instant results to help protect yourself from catfishing</Text>
+              </View>
+            </View>
+
+            <View style={welcomeModalStyles.pricingSection}>
+              <Text style={welcomeModalStyles.sectionTitle}>Pricing:</Text>
+              <Text style={welcomeModalStyles.pricingText}>15 scans — $4.99</Text>
+              <Text style={welcomeModalStyles.pricingText}>50 scans — $9.99</Text>
+              <Text style={welcomeModalStyles.pricingText}>100 scans — $16.99</Text>
+            </View>
+          </View>
+
+          <View style={[welcomeModalStyles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+            <TouchableOpacity
+              style={welcomeModalStyles.getStartedButton}
+              onPress={handleWelcomeClose}
+            >
+              <Text style={welcomeModalStyles.getStartedButtonText}>Get Started</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
+
+const welcomeModalStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.dark,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text.white,
+    textAlign: 'center',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  welcomeText: {
+    fontSize: 18,
+    color: colors.text.white,
+    lineHeight: 26,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  featureSection: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 16,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    alignItems: 'flex-start',
+  },
+  bullet: {
+    fontSize: 18,
+    color: colors.primary,
+    marginRight: 12,
+    fontWeight: 'bold',
+  },
+  featureText: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text.secondary,
+    lineHeight: 24,
+  },
+  pricingSection: {
+    marginTop: 20,
+  },
+  pricingText: {
+    fontSize: 16,
+    color: colors.text.white,
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  buttonContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  getStartedButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  getStartedButtonText: {
+    color: colors.text.white,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+});
 
 export default ScanScreen;
 

@@ -21,9 +21,9 @@ import colors from '../colors';
 export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore }) {
   const [packages, setPackages] = useState([]);
   const [packagesByType, setPackagesByType] = useState({
-    pack_5: null,
-    pack_20: null,
+    pack_15: null,
     pack_50: null,
+    pack_100: null,
   });
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
@@ -71,6 +71,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       setPackagesByType(tokenPackages);
 
       // Auto-select pack_50 if available (best value), otherwise pack_15, then pack_100
+      // If no packages from RevenueCat, use fallback selection
       if (tokenPackages.pack_50) {
         setSelectedPackage(tokenPackages.pack_50);
       } else if (tokenPackages.pack_15) {
@@ -79,6 +80,9 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
         setSelectedPackage(tokenPackages.pack_100);
       } else if (allPackages.length > 0) {
         setSelectedPackage(allPackages[0]);
+      } else {
+        // Fallback: select the 50 scans pack (best value) when RevenueCat packages aren't available
+        setSelectedPackage('fallback_50');
       }
     } catch (error) {
       console.error('Error loading packages:', error);
@@ -90,7 +94,18 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
 
   const handlePurchase = async (pkg) => {
     if (!pkg) {
-      Alert.alert('Error', 'Please select a subscription plan');
+      Alert.alert('Error', 'Please select a scan pack');
+      return;
+    }
+
+    // Handle fallback package selection (when RevenueCat packages aren't loaded)
+    if (typeof pkg === 'string' && pkg.startsWith('fallback_')) {
+      const scanCount = parseInt(pkg.replace('fallback_', ''));
+      Alert.alert(
+        'Package Selected',
+        `You selected ${scanCount} scans. Please ensure RevenueCat is configured to complete the purchase.`,
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -188,30 +203,38 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
     }
   };
 
-  const renderPackageIcon = (pkg, scanCount, isRecommended = false) => {
-    if (!pkg) return null;
-
-    const isSelected = selectedPackage?.identifier === pkg.identifier;
-    const price = RevenueCatService.getFormattedPrice(pkg);
+  const renderPackageIcon = (pkg, scanCount, isRecommended = false, fallbackPrice = null) => {
+    // Use fallback if no package from RevenueCat
+    const useFallback = !pkg && fallbackPrice !== null;
+    const isSelected = useFallback 
+      ? selectedPackage === `fallback_${scanCount}`
+      : selectedPackage?.identifier === pkg?.identifier;
+    const price = useFallback ? `$${fallbackPrice.toFixed(2)}` : (pkg ? RevenueCatService.getFormattedPrice(pkg) : 'N/A');
 
     // Icon sizes based on scan count
     const iconSizes = {
-      5: { size: 60, circles: 3 },
-      20: { size: 80, circles: 5 },
-      50: { size: 100, circles: 7 },
+      15: { size: 70, circles: 4 },
+      50: { size: 90, circles: 6 },
+      100: { size: 110, circles: 8 },
     };
 
-    const iconConfig = iconSizes[scanCount] || iconSizes[5];
+    const iconConfig = iconSizes[scanCount] || iconSizes[15];
 
     return (
       <TouchableOpacity
-        key={pkg.identifier}
+        key={pkg?.identifier || `fallback_${scanCount}`}
         style={[
           styles.packageIconCard,
           isSelected && styles.packageIconCardSelected,
           isRecommended && styles.packageIconCardRecommended,
         ]}
-        onPress={() => setSelectedPackage(pkg)}
+        onPress={() => {
+          if (useFallback) {
+            setSelectedPackage(`fallback_${scanCount}`);
+          } else if (pkg) {
+            setSelectedPackage(pkg);
+          }
+        }}
         disabled={purchasing}
         activeOpacity={0.8}
       >
@@ -307,22 +330,14 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Purchase Scan Packs</Text>
-          <Text style={styles.subtitle}>Buy scans as you need them - no recurring billing</Text>
+          <Text style={styles.subtitle}>Get 3 free scans on signup • Buy more as you need them</Text>
         </View>
 
         <View style={styles.packagesIconContainer}>
-          {renderPackageIcon(packagesByType.pack_15, 15, false)}
-          {renderPackageIcon(packagesByType.pack_50, 50, true)}
-          {renderPackageIcon(packagesByType.pack_100, 100, false)}
+          {renderPackageIcon(packagesByType.pack_15, 15, false, TOKEN_PACKS.pack_15.price)}
+          {renderPackageIcon(packagesByType.pack_50, 50, true, TOKEN_PACKS.pack_50.price)}
+          {renderPackageIcon(packagesByType.pack_100, 100, false, TOKEN_PACKS.pack_100.price)}
         </View>
-
-        {packages.length === 0 && (
-          <View style={styles.noPackagesContainer}>
-            <Text style={styles.noPackagesText}>
-              No subscription packages available. Please try again later.
-            </Text>
-          </View>
-        )}
 
         <View style={styles.featuresContainer}>
           <Text style={styles.featuresTitle}>How It Works:</Text>
@@ -353,7 +368,9 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.purchaseButtonText}>
-              Purchase Now
+              {typeof selectedPackage === 'string' && selectedPackage.startsWith('fallback_') 
+                ? 'Purchase Now (Configure RevenueCat)' 
+                : 'Purchase Now'}
             </Text>
           )}
         </TouchableOpacity>

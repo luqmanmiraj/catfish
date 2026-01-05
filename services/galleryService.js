@@ -18,6 +18,17 @@ const SAMPLE_IMAGES = [
   require('../assets/sample-images/person3.jpg'),
   require('../assets/sample-images/person4.jpg'),
   require('../assets/sample-images/person5.jpg'),
+  require('../assets/sample-images/person6.jpg'),
+  require('../assets/sample-images/person7.jpg'),
+  require('../assets/sample-images/person8.jpg'),
+  require('../assets/sample-images/person9.png'),
+  require('../assets/sample-images/person10.jpg'),
+  require('../assets/sample-images/person11.webp'),
+  require('../assets/sample-images/person12.webp'),
+  require('../assets/sample-images/person13.webp'),
+  require('../assets/sample-images/person14.webp'),
+  require('../assets/sample-images/person15.jpg'),
+  require('../assets/sample-images/person16.jpg'),
 ];
 
 /**

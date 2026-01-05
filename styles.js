@@ -195,13 +195,14 @@ export const scanStyles = StyleSheet.create({
   },
   howItWorksButton: {
     marginTop: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   howItWorksText: {
-    fontSize: 12,
-    color: colors.accent.lightGreyBlue,
+    fontSize: 16,
+    color: colors.primary,
     textDecorationLine: 'underline',
+    fontWeight: 'bold',
   },
   contentArea: {
     flex: 1,
@@ -765,6 +766,38 @@ export const profileStyles = StyleSheet.create({
     color: colors.text.grey,
     textAlign: 'center',
     marginTop: 16,
+  },
+  pricingInfo: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  pricingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.white,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  pricingPackages: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  pricingPackage: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  packageScans: {
+    fontSize: 14,
+    color: colors.text.white,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  packagePrice: {
+    fontSize: 16,
+    color: colors.accent.gold,
+    fontWeight: 'bold',
   },
   settingsTitle: {
     fontSize: 20,

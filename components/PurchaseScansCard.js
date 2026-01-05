@@ -8,15 +8,22 @@ import colors from '../colors';
 const PurchaseScansCard = ({ onUpgrade }) => {
   return (
     <View style={profileStyles.upgradeCard}>
-      <View style={profileStyles.priceText}>
-        <Svg width="13" height="28" viewBox="0 0 13 28" fill="none" style={profileStyles.dollarSign}>
-          <Path
-            d="M5.40381 16.6736C4.66781 16.6736 3.98438 16.5408 3.35352 16.2752C2.72266 16.0096 2.21077 15.6277 1.81787 15.1297C1.4305 14.6317 1.22298 14.034 1.19531 13.3367V13.3284L2.63965 13.3201V13.3367C2.69499 13.7186 2.82503 14.0644 3.02979 14.3743C3.23454 14.6842 3.5306 14.9305 3.91797 15.1131C4.31087 15.2902 4.81169 15.3787 5.42041 15.3787C6.04574 15.3787 6.54655 15.2957 6.92285 15.1297C7.30469 14.9582 7.58138 14.7313 7.75293 14.449C7.92448 14.1613 8.01025 13.8458 8.01025 13.5027V13.4861C8.01025 13.0324 7.86637 12.6561 7.57861 12.3572C7.29639 12.0529 6.743 11.8011 5.91846 11.6019L4.68164 11.303C3.99544 11.137 3.41439 10.9212 2.93848 10.6556C2.4681 10.3844 2.11117 10.0524 1.86768 9.65948C1.62419 9.26658 1.50244 8.79897 1.50244 8.25665V8.24005C1.50244 7.59259 1.67122 7.0309 2.00879 6.55499C2.35189 6.07355 2.81673 5.70278 3.40332 5.44269C3.98991 5.17706 4.65674 5.04425 5.40381 5.04425C6.11768 5.04425 6.76514 5.17983 7.34619 5.45099C7.93278 5.72215 8.40592 6.10398 8.76562 6.5965C9.12533 7.08348 9.31624 7.65623 9.33838 8.31476V8.32306L7.89404 8.33136V8.31476C7.85531 7.89419 7.72249 7.53725 7.49561 7.24396C7.27425 6.95066 6.98372 6.72654 6.62402 6.57159C6.26432 6.41665 5.85758 6.33917 5.40381 6.33917C4.86702 6.33917 4.41602 6.42771 4.05078 6.6048C3.68555 6.77635 3.40885 7.00047 3.2207 7.27716C3.03809 7.54832 2.94678 7.83608 2.94678 8.14044V8.15704C2.94678 8.42267 3.00765 8.66892 3.12939 8.89581C3.25667 9.1227 3.46143 9.32469 3.74365 9.50177C4.02588 9.67885 4.40771 9.8255 4.88916 9.94171L6.12598 10.2405C7.19401 10.4951 8.01579 10.8631 8.59131 11.3445C9.16683 11.826 9.45459 12.5011 9.45459 13.3699V13.3865C9.45459 14.1004 9.26644 14.7036 8.89014 15.1961C8.51383 15.6831 8.01855 16.0511 7.4043 16.3001C6.79004 16.5491 6.12321 16.6736 5.40381 16.6736ZM4.87256 18.0516V3.66632H5.86865V18.0516H4.87256Z"
-            fill={colors.text.grey}
-          />
-        </Svg>
-        <Text style={profileStyles.priceAmount}>9.99</Text>
-        <Text style={profileStyles.pricePeriod}>/month</Text>
+      <View style={profileStyles.pricingInfo}>
+        <Text style={profileStyles.pricingTitle}>Get 3 free scans on signup</Text>
+        <View style={profileStyles.pricingPackages}>
+          <View style={profileStyles.pricingPackage}>
+            <Text style={profileStyles.packageScans}>15 scans</Text>
+            <Text style={profileStyles.packagePrice}>$4.99</Text>
+          </View>
+          <View style={profileStyles.pricingPackage}>
+            <Text style={profileStyles.packageScans}>50 scans</Text>
+            <Text style={profileStyles.packagePrice}>$9.99</Text>
+          </View>
+          <View style={profileStyles.pricingPackage}>
+            <Text style={profileStyles.packageScans}>100 scans</Text>
+            <Text style={profileStyles.packagePrice}>$16.99</Text>
+          </View>
+        </View>
       </View>
       <TouchableOpacity
         onPress={onUpgrade}
@@ -34,11 +41,11 @@ const PurchaseScansCard = ({ onUpgrade }) => {
               fill="black"
             />
           </Svg>
-          <Text style={profileStyles.upgradeButtonText}>Upgrade Now</Text>
+          <Text style={profileStyles.upgradeButtonText}>Purchase Scans</Text>
         </LinearGradient>
       </TouchableOpacity>
       <Text style={profileStyles.upgradeTerms}>
-        Cancel anytime • 30-day money-back guarantee
+        One-time purchase • No recurring billing
       </Text>
     </View>
   );
