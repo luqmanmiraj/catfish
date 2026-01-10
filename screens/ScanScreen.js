@@ -93,7 +93,14 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
               <Text style={scanStyles.upgradeText}>Upgrade</Text>
             </LinearGradient>
           </TouchableOpacity>
-          {onHowItWorks && (
+        </View>
+      </View>
+
+      {/* Main Content Area */}
+      <View style={scanStyles.contentArea}>
+        {/* How It Works - Above Camera Icon */}
+        {onHowItWorks && (
+          <View style={scanStyles.howItWorksContainer}>
             <TouchableOpacity
               onPress={onHowItWorks}
               activeOpacity={0.7}
@@ -101,12 +108,9 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
             >
               <Text style={scanStyles.howItWorksText}>How it works?</Text>
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
+          </View>
+        )}
 
-      {/* Main Content Area */}
-      <View style={scanStyles.contentArea}>
         {/* Circular Scan Design */}
         <TouchableOpacity
           style={scanStyles.scanCircleContainer}
@@ -286,6 +290,9 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
 
             <View style={welcomeModalStyles.pricingSection}>
               <Text style={welcomeModalStyles.sectionTitle}>Pricing:</Text>
+              <View style={welcomeModalStyles.freeScansContainer}>
+                <Text style={welcomeModalStyles.freeScansText}>3 free scans — On signup</Text>
+              </View>
               <Text style={welcomeModalStyles.pricingText}>15 scans — $4.99</Text>
               <Text style={welcomeModalStyles.pricingText}>50 scans — $9.99</Text>
               <Text style={welcomeModalStyles.pricingText}>100 scans — $16.99</Text>
@@ -362,6 +369,21 @@ const welcomeModalStyles = StyleSheet.create({
   },
   pricingSection: {
     marginTop: 20,
+  },
+  freeScansContainer: {
+    backgroundColor: 'rgba(10, 180, 224, 0.2)',
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  freeScansText: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   pricingText: {
     fontSize: 16,

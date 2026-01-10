@@ -193,16 +193,27 @@ export const scanStyles = StyleSheet.create({
   headerRight: {
     alignItems: 'flex-end',
   },
-  howItWorksButton: {
-    marginTop: 8,
+  howItWorksContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  howItWorksButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   howItWorksText: {
-    fontSize: 16,
+    fontSize: 30,
     color: colors.primary,
     textDecorationLine: 'underline',
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   contentArea: {
     flex: 1,
@@ -213,7 +224,7 @@ export const scanStyles = StyleSheet.create({
   scanCircleContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 30,
+    marginBottom: 10,
   },
   scanCircle: {
     width: 400,
