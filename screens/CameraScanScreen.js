@@ -7,6 +7,7 @@ import { cameraScanStyles } from '../styles';
 import colors from '../colors';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useAuth } from '../context/AuthContext';
+import * as Analytics from '../services/analyticsService';
 
 const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
   const { scansRemaining } = useSubscription();
@@ -31,6 +32,17 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
       });
 
       if (!result.canceled && result.assets[0]) {
+        // Track picture taken event
+        try {
+          const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
+          await Analytics.trackPictureTaken({
+            user_id: userId,
+            source: 'camera',
+          });
+        } catch (error) {
+          console.error('Error tracking picture taken event:', error);
+        }
+        
         if (onImageSelected) {
           onImageSelected(result.assets[0].uri);
         }
@@ -51,6 +63,17 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
       });
 
       if (!result.canceled && result.assets[0]) {
+        // Track picture taken event
+        try {
+          const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
+          await Analytics.trackPictureTaken({
+            user_id: userId,
+            source: 'gallery',
+          });
+        } catch (error) {
+          console.error('Error tracking picture taken event:', error);
+        }
+        
         if (onImageSelected) {
           onImageSelected(result.assets[0].uri);
         }

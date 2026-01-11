@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path, G } from 'react-native-svg';
 import * as RevenueCatService from '../services/revenueCatService';
+import * as Analytics from '../services/analyticsService';
+import { useAuth } from '../context/AuthContext';
 import colors from '../colors';
 
 /**
@@ -19,6 +21,7 @@ import colors from '../colors';
  * Displays token pack options (5, 20, 50 scans) with RevenueCat Paywall UI option
  */
 export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore }) {
+  const { user } = useAuth();
   const [packages, setPackages] = useState([]);
   const [packagesByType, setPackagesByType] = useState({
     pack_15: null,
@@ -116,6 +119,25 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       // Check if purchase was successful
       const hasPro = customerInfo.entitlements.active[RevenueCatService.CATFISH_PRO_ENTITLEMENT] || 
                      customerInfo.entitlements.active[RevenueCatService.TEKJIN_PRO_ENTITLEMENT];
+      
+      // Track purchase completed event
+      try {
+        const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
+        const productId = pkg.identifier || pkg.storeProduct?.identifier || 'unknown';
+        const price = pkg.storeProduct?.price || 0;
+        const currency = pkg.storeProduct?.currencyCode || 'USD';
+        const transactionId = customerInfo.originalPurchaseDate || Date.now().toString();
+        
+        await Analytics.trackPurchaseCompleted({
+          user_id: userId,
+          product_id: productId,
+          price: price,
+          currency: currency,
+          transaction_id: transactionId,
+        });
+      } catch (error) {
+        console.error('Error tracking purchase completed event:', error);
+      }
       
       // Token pack purchase completed
       Alert.alert('Purchase Complete', 'Your scan pack has been added to your account!', [

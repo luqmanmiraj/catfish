@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import * as RevenueCatService from '../services/revenueCatService';
 import * as SubscriptionApi from '../services/subscriptionApi';
+import * as Analytics from '../services/analyticsService';
 
 // Export TEKJIN_PRO_ENTITLEMENT for use in components
 export { RevenueCatService };
@@ -138,6 +139,7 @@ export function SubscriptionProvider({ children }) {
   const decrementToken = async () => {
     // Update local state immediately for better UX
     const newBalance = Math.max(0, tokenBalance - 1);
+    const previousBalance = tokenBalance;
     setTokenBalance(newBalance);
     setScansRemaining(newBalance);
 
@@ -146,21 +148,43 @@ export function SubscriptionProvider({ children }) {
       try {
         const result = await SubscriptionApi.decrementToken(accessToken);
         // Update with actual balance from backend
-        if (result.tokenBalance !== undefined) {
-          setTokenBalance(result.tokenBalance);
-          setScansRemaining(result.tokenBalance);
+        const finalBalance = result.tokenBalance !== undefined ? result.tokenBalance : newBalance;
+        setTokenBalance(finalBalance);
+        setScansRemaining(finalBalance);
+        
+        // Track trial completed event if balance reached 0
+        if (previousBalance > 0 && finalBalance === 0) {
+          try {
+            const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
+            await Analytics.trackTrialCompleted({
+              user_id: userId,
+              trial_scans_used: previousBalance,
+            });
+          } catch (error) {
+            console.error('Error tracking trial completed event:', error);
+          }
         }
       } catch (error) {
         // Handle "insufficient tokens" gracefully - this is expected business logic
         if (error.status === 400 && error.responseData?.error === 'Insufficient tokens') {
           // Update with actual balance from error response
-          if (error.responseData.tokenBalance !== undefined) {
-            setTokenBalance(error.responseData.tokenBalance);
-            setScansRemaining(error.responseData.tokenBalance);
-          } else {
-            // Revert local state if no balance info in error
-            setTokenBalance(tokenBalance);
-            setScansRemaining(scansRemaining);
+          const finalBalance = error.responseData.tokenBalance !== undefined 
+            ? error.responseData.tokenBalance 
+            : newBalance;
+          setTokenBalance(finalBalance);
+          setScansRemaining(finalBalance);
+          
+          // Track trial completed event if balance reached 0
+          if (previousBalance > 0 && finalBalance === 0) {
+            try {
+              const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
+              await Analytics.trackTrialCompleted({
+                user_id: userId,
+                trial_scans_used: previousBalance,
+              });
+            } catch (error) {
+              console.error('Error tracking trial completed event:', error);
+            }
           }
           // Log as warning instead of error since this is expected behavior
           console.warn('Cannot decrement token: insufficient tokens remaining');
@@ -170,6 +194,18 @@ export function SubscriptionProvider({ children }) {
           // Revert local state on error
           setTokenBalance(tokenBalance);
           setScansRemaining(scansRemaining);
+        }
+      }
+    } else {
+      // Not authenticated - check if trial completed locally
+      if (previousBalance > 0 && newBalance === 0) {
+        try {
+          await Analytics.trackTrialCompleted({
+            user_id: null,
+            trial_scans_used: previousBalance,
+          });
+        } catch (error) {
+          console.error('Error tracking trial completed event:', error);
         }
       }
     }

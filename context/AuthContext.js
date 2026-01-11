@@ -7,6 +7,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as authApi from '../services/authApi';
 import * as authStorage from '../services/authStorage';
 import { getDeviceId } from '../utils/deviceLogger';
+import * as Analytics from '../services/analyticsService';
 
 const AuthContext = createContext(null);
 
@@ -79,6 +80,19 @@ export function AuthProvider({ children }) {
   const signUp = async (email, password, name = null) => {
     try {
       const result = await authApi.signUp(email, password, name);
+      
+      // Track sign up event (app initialization happens after email verification)
+      if (result.success) {
+        try {
+          await Analytics.trackSignUp({
+            user_id: email, // Use email as temporary user ID until account is confirmed
+            email: email,
+          });
+        } catch (error) {
+          console.error('Error tracking sign up event:', error);
+        }
+      }
+      
       return { success: true, data: result };
     } catch (error) {
       return { success: false, error: error.message };
@@ -91,6 +105,36 @@ export function AuthProvider({ children }) {
   const confirmSignUp = async (email, confirmationCode) => {
     try {
       const result = await authApi.confirmSignUp(email, confirmationCode);
+      
+      // Track app initialization event after successful account creation
+      if (result.success) {
+        try {
+          // Get user info to get user ID
+          const token = result.accessToken || await authStorage.getAccessToken();
+          if (token) {
+            try {
+              const userInfo = await authApi.getUserInfo(token);
+              const userId = userInfo?.userAttributes?.sub || userInfo?.userAttributes?.email || email;
+              await Analytics.setUserId(userId);
+              await Analytics.trackAppInitialized({
+                user_id: userId,
+                is_guest: false,
+                email: email,
+              });
+            } catch (userError) {
+              // Fallback to email if user info fetch fails
+              await Analytics.trackAppInitialized({
+                user_id: email,
+                is_guest: false,
+                email: email,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error tracking app initialization event:', error);
+        }
+      }
+      
       return { success: true, data: result };
     } catch (error) {
       return { success: false, error: error.message };
@@ -125,8 +169,9 @@ export function AuthProvider({ children }) {
         });
 
         // Get user info
+        let userInfo = null;
         try {
-          const userInfo = await authApi.getUserInfo(result.accessToken);
+          userInfo = await authApi.getUserInfo(result.accessToken);
           await authStorage.storeUser(userInfo.userAttributes);
           setUser(userInfo.userAttributes);
         } catch (userError) {
@@ -136,6 +181,16 @@ export function AuthProvider({ children }) {
 
         setAccessToken(result.accessToken);
         setIsAuthenticated(true);
+        
+        // Track sign in event
+        try {
+          const userId = userInfo?.userAttributes?.sub || userInfo?.userAttributes?.email || userInfo?.userAttributes?.['cognito:username'] || email;
+          await Analytics.setUserId(userId);
+          await Analytics.trackSignIn({ user_id: userId });
+        } catch (error) {
+          console.error('Error tracking sign in event:', error);
+        }
+        
         return { success: true, data: result };
       } else {
         return { success: false, error: result.message || 'Sign in failed' };
@@ -150,6 +205,13 @@ export function AuthProvider({ children }) {
    */
   const signOut = async () => {
     try {
+      // Clear analytics user ID
+      try {
+        await Analytics.clearUserId();
+      } catch (error) {
+        console.error('Error clearing analytics user ID:', error);
+      }
+      
       await authStorage.clearAuthData();
       setUser(null);
       setAccessToken(null);
@@ -239,6 +301,19 @@ export function AuthProvider({ children }) {
 
         setAccessToken(result.accessToken);
         setIsAuthenticated(true);
+        
+        // Track app initialization event (guest signup)
+        try {
+          const userId = userInfo?.userAttributes?.sub || userInfo?.userAttributes?.email || userInfo?.userAttributes?.['cognito:username'] || null;
+          await Analytics.setUserId(userId);
+          await Analytics.trackAppInitialized({
+            user_id: userId,
+            is_guest: true,
+          });
+        } catch (error) {
+          console.error('Error tracking app initialization event:', error);
+        }
+        
         return { success: true, data: result, isGuest: true };
       } else {
         return { success: false, error: result.message || 'Guest signup failed' };

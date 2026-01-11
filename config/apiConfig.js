@@ -28,9 +28,21 @@ const REVENUECAT_API_KEY = {
 // Options: 'analyze' (Sightengine) or 'gowinston/detect' (Gowinston AI)
 const ANALYSIS_ENDPOINT = 'gowinston/detect';
 
+// Meta (Facebook) SDK Configuration
+// Get these from Facebook Developer Console
+const META_APP_ID = '894575559718778'; // Set your Facebook App ID here
+const META_PIXEL_ID = null; // Set your Meta Pixel ID here (for CAPI)
+
+// Singular Analytics Configuration
+// Get this from Singular Dashboard
+const SINGULAR_API_KEY = null; // Set your Singular API Key here
+
 export default {
   API_BASE_URL,
   REVENUECAT_API_KEY,
   ANALYSIS_ENDPOINT,
+  META_APP_ID,
+  META_PIXEL_ID,
+  SINGULAR_API_KEY,
 };
 

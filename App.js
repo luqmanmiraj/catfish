@@ -33,6 +33,8 @@ import PaywallScreen from './components/PaywallScreen';
 import LabelNoteModal from './components/LabelNoteModal';
 import { getScanHistory, updateScanHistory, createScanHistory } from './services/subscriptionApi';
 import { populateGalleryWithSamples } from './services/galleryService';
+import * as Analytics from './services/analyticsService';
+import apiConfig from './config/apiConfig';
 import styles from './styles';
 import colors from './colors';
 
@@ -371,6 +373,23 @@ function AppContent() {
     setAnalysisResult(result);
     console.log('Analysis complete - showing results screen');
     console.log('Analysis result data:', result);
+    
+    // Track scan completed event
+    if (result) {
+      try {
+        const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
+        await Analytics.trackScanCompleted({
+          user_id: userId,
+          scan_id: result.requestId || result.sightengineRequestId || result.gowinstonRequestId || null,
+          result_status: result.status || 'unknown',
+          deepfake_score: result.deepfakeScore || result.confidence || null,
+          ai_probability: result.aiProbability || null,
+          human_probability: result.humanProbability || null,
+        });
+      } catch (error) {
+        console.error('Error tracking scan completed event:', error);
+      }
+    }
     
     // Decrement token after successful scan (if authenticated)
     // DEV MODE: Only local decrement - no backend sync
@@ -1019,6 +1038,22 @@ function AppContent() {
 }
 
 export default function App() {
+  // Initialize analytics on app start
+  useEffect(() => {
+    const initAnalytics = async () => {
+      await Analytics.initializeAnalytics({
+        meta: {
+          appId: apiConfig.META_APP_ID,
+          pixelId: apiConfig.META_PIXEL_ID,
+        },
+        singular: {
+          apiKey: apiConfig.SINGULAR_API_KEY,
+        },
+      });
+    };
+    initAnalytics();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <AuthProvider>
