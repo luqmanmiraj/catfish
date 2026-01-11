@@ -86,25 +86,31 @@ export async function trackEvent(eventName, eventParams = {}) {
   }
 
   try {
-    // Generate event ID for deduplication (AEM requirement)
-    const eventId = generateEventId();
+    // Extract event ID from params if provided (for deduplication with CAPI)
+    // Otherwise generate a new one
+    const eventId = eventParams._eventId || generateEventId();
 
     // Prepare parameters for Meta SDK
     // Meta SDK expects parameters in a specific format
+    // Remove _eventId from params as it's handled separately
+    const { _eventId, _user_id, ...cleanParams } = eventParams;
+    
     const params = {
-      ...eventParams,
-      _eventId: eventId, // For deduplication
+      ...cleanParams,
     };
 
-    // Add user ID if available
-    if (currentUserId) {
-      params._user_id = currentUserId;
+    // Add user ID if available (use provided _user_id or currentUserId)
+    const userId = _user_id || currentUserId;
+    if (userId) {
+      params._user_id = userId;
     }
 
     // Log event with Meta SDK
+    // Note: Meta SDK doesn't directly support event_id in logEvent
+    // We'll include it in params for tracking purposes
     AppEventsLogger.logEvent(eventName, params);
 
-    console.log(`Meta event tracked: ${eventName}`, params);
+    console.log(`Meta event tracked: ${eventName}`, { ...params, eventId });
   } catch (error) {
     console.error(`Error tracking Meta event ${eventName}:`, error);
     // Don't throw - analytics failures shouldn't break the app
