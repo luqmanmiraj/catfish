@@ -24,6 +24,7 @@ const AboutScreen = ({ onScanClick, onHistoryClick, onProfileClick }) => {
           </View>
           {/* <Text style={aboutStyles.brandName}>CATFISH CRASHER</Text> */}
           <Text style={aboutStyles.tagline}>AI Detection Technology</Text>
+          <Text style={aboutStyles.companyInfo}>Catfish Crasher is a US based company.</Text>
         </View>
 
         {/* Our Mission */}

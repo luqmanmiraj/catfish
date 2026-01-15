@@ -6,7 +6,7 @@
 export const colors = {
   // Primary brand color (light blue/cyan)
   primary: '#0AB4E0',
-  
+  yellow: '#FFD700',
   // Background colors
   background: {
     dark: '#0E1F2B',        // Dark blue background

@@ -50,6 +50,22 @@ const styles = StyleSheet.create({
     color: colors.accent.lightGreyBlue,
     textAlign: 'center',
   },
+  taglineTextExp: {
+    fontSize: 18,
+    color: colors.accent.yellow,
+    textAlign: 'center',
+    paddingLeft: 20,
+    paddingRight: 20,
+    marginTop: 5,
+  },
+  taglineTextExp1: {
+    fontSize: 16,
+    color: colors.accent.lightGreyBlue,
+    textAlign: 'center',
+    paddingLeft: 20,
+    paddingRight: 20,
+    marginTop: 5,
+  },
   buttonContainer: {
     paddingHorizontal: 20,
     paddingBottom: 30,
@@ -193,6 +209,12 @@ export const scanStyles = StyleSheet.create({
   headerRight: {
     alignItems: 'flex-end',
   },
+  homeButton: {
+    marginTop: 8,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   howItWorksContainer: {
     width: '100%',
     alignItems: 'center',
@@ -207,6 +229,20 @@ export const scanStyles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  howItWorksVideoButton: {
+    // paddingVertical: 8,
+    // paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  howItWorksVideo: {
+    fontSize: 16,
+    color: colors.yellow,
+    // textDecorationLine: 'underline',
+    // fontWeight: 'bold',
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   howItWorksText: {
     fontSize: 30,
@@ -224,6 +260,7 @@ export const scanStyles = StyleSheet.create({
   scanCircleContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: -20,
     marginBottom: 10,
   },
   scanCircle: {
@@ -311,7 +348,8 @@ export const scanStyles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text.white,
-    marginBottom: 12,
+    marginTop: -30,
+    marginBottom: 10,
     textAlign: 'center',
   },
   descriptionText: {
@@ -525,6 +563,13 @@ export const aboutStyles = StyleSheet.create({
     letterSpacing: 2,
     marginBottom: 8,
   },
+  companyInfo: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
   tagline: {
     fontSize: 20,
     color: colors.text.white,
@@ -630,6 +675,13 @@ export const aboutStyles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.version_color,
     marginBottom: 4,
+  },
+  footerTextExp: {
+    fontSize: 12,
+    color: colors.text.version_color,
+    marginBottom: 4,
+    paddingLeft: 20,
+    paddingRight: 20,
   },
   bottomNav: {
     flexDirection: 'row',

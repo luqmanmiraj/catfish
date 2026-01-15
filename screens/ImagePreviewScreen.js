@@ -18,6 +18,8 @@ const ImagePreviewScreen = ({ imageUri, onScan, onClose }) => {
       // Note: expo-image-picker requires selecting an image to crop it
       // The user will need to select the same image (or a different one) to crop
       try {
+        // expo-image-picker automatically requests permissions when needed
+        // No need to pre-request with expo-media-library
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,

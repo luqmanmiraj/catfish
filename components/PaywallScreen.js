@@ -352,7 +352,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Purchase Scan Packs</Text>
-          <Text style={styles.subtitle}>Get 3 free scans on signup • Buy more as you need them</Text>
+          <Text style={styles.subtitle}>Get 5 free scans on signup • Buy more as you need them</Text>
         </View>
 
         <View style={styles.packagesIconContainer}>
@@ -363,13 +363,13 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
 
         <View style={styles.featuresContainer}>
           <Text style={styles.featuresTitle}>How It Works:</Text>
-          <View style={styles.featureItem}>
+          {/* <View style={styles.featureItem}>
             <Text style={styles.featureBullet}>•</Text>
             <Text style={styles.featureText}>1 scan = 1 token</Text>
-          </View>
+          </View> */}
           <View style={styles.featureItem}>
             <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>Tokens never expire</Text>
+            <Text style={styles.featureText}>Scans never expire</Text>
           </View>
           <View style={styles.featureItem}>
             <Text style={styles.featureBullet}>•</Text>

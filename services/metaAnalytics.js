@@ -27,11 +27,19 @@ export async function initialize(config = {}) {
       return;
     }
 
+    // Check if Settings is available (may be null in Expo Go or if SDK not properly linked)
+    if (!Settings || typeof Settings.setAppID !== 'function') {
+      console.warn('Meta SDK Settings not available. This is normal in Expo Go. Meta analytics will be disabled.');
+      return;
+    }
+
     // Set app ID for Meta SDK
     Settings.setAppID(metaAppId);
     
     // Enable auto-logging of app events (optional)
-    Settings.setAdvertiserTrackingEnabled(true);
+    if (typeof Settings.setAdvertiserTrackingEnabled === 'function') {
+      Settings.setAdvertiserTrackingEnabled(true);
+    }
 
     isInitialized = true;
     console.log('Meta SDK initialized');
@@ -86,6 +94,12 @@ export async function trackEvent(eventName, eventParams = {}) {
   }
 
   try {
+    // Check if AppEventsLogger is available
+    if (!AppEventsLogger || typeof AppEventsLogger.logEvent !== 'function') {
+      console.warn('Meta SDK AppEventsLogger not available. Skipping event:', eventName);
+      return;
+    }
+
     // Extract event ID from params if provided (for deduplication with CAPI)
     // Otherwise generate a new one
     const eventId = eventParams._eventId || generateEventId();
@@ -125,6 +139,13 @@ export async function trackPurchase(params = {}) {
   const { value, currency = 'USD', ...otherParams } = params;
 
   try {
+    // Check if AppEventsLogger is available
+    if (!AppEventsLogger || typeof AppEventsLogger.logPurchase !== 'function') {
+      console.warn('Meta SDK AppEventsLogger not available. Falling back to custom event.');
+      await trackEvent('PurchaseCompleted', params);
+      return;
+    }
+
     // Use Meta's built-in purchase event
     if (value !== undefined) {
       AppEventsLogger.logPurchase(value, currency, {

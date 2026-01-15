@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity, Alert, ActivityIndicator, Share, Platform } from 'react-native';
+import { Text, View, TouchableOpacity, Alert, ActivityIndicator, Share, Platform, Linking } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
@@ -32,7 +32,6 @@ import ResultsScreen from './screens/ResultsScreen';
 import PaywallScreen from './components/PaywallScreen';
 import LabelNoteModal from './components/LabelNoteModal';
 import { getScanHistory, updateScanHistory, createScanHistory } from './services/subscriptionApi';
-import { populateGalleryWithSamples } from './services/galleryService';
 import * as Analytics from './services/analyticsService';
 import * as SentryService from './services/sentryService';
 import * as PostHogService from './services/posthogService';
@@ -81,36 +80,8 @@ function AppContent() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [currentScanId, setCurrentScanId] = useState(null);
   const [showLabelNoteModal, setShowLabelNoteModal] = useState(false);
+  const [showLandingScreen, setShowLandingScreen] = useState(false);
 
-  // Populate gallery with sample images on app launch
-  // This will run on every fresh install (AsyncStorage is empty on first launch)
-  // On subsequent app opens, it will skip if already populated
-  useEffect(() => {
-    const populateGallery = async () => {
-      try {
-        console.log('Checking if gallery needs to be populated with sample images...');
-        const result = await populateGalleryWithSamples();
-        if (result.success) {
-          if (result.count > 0) {
-            console.log(`✅ Gallery populated successfully: ${result.message}`);
-          } else {
-            console.log('ℹ️ Gallery population skipped (already populated)');
-          }
-        } else {
-          console.warn('⚠️ Gallery population failed:', result.message);
-          // Don't block app if gallery population fails - app can still function
-        }
-      } catch (error) {
-        console.error('❌ Error populating gallery:', error);
-        // Don't block app startup if gallery population fails
-      }
-    };
-
-    // Populate gallery on app start
-    // On fresh install: AsyncStorage is empty → gallery gets populated
-    // On subsequent opens: AsyncStorage has flag → gallery population skipped
-    populateGallery();
-  }, []); // Empty dependency array - runs only once on mount
 
   // Check if user is authenticated and RevenueCat is not configured
   // If so, show scan screen automatically on app start
@@ -138,6 +109,7 @@ function AppContent() {
   }
 
   const handleGetStarted = () => {
+    setShowLandingScreen(false);
     setShowPermissions(true);
   };
 
@@ -503,6 +475,7 @@ function AppContent() {
 
     try {
       // Request media library permissions
+      // The expo-media-library plugin configuration in app.json ensures only image permissions are requested
       const { status } = await MediaLibrary.requestPermissionsAsync();
       
       if (status !== 'granted') {
@@ -774,6 +747,44 @@ function AppContent() {
     setShowProfileScreen(false);
   };
 
+  const handleWatchVideo = async () => {
+    // TODO: Replace with your actual video URL
+    const videoUrl = 'https://www.youtube.com/watch?v=YOUR_VIDEO_ID'; // Replace with actual video URL
+    
+    try {
+      const supported = await Linking.canOpenURL(videoUrl);
+      if (supported) {
+        await Linking.openURL(videoUrl);
+      } else {
+        Alert.alert('Error', 'Cannot open video URL');
+      }
+    } catch (error) {
+      console.error('Error opening video:', error);
+      Alert.alert('Error', 'Failed to open video');
+    }
+  };
+
+  const handleHomeClick = () => {
+    // Reset all screen states to show welcome/landing screen
+    // Keep user authenticated
+    setShowScanScreen(false);
+    setShowHistoryScreen(false);
+    setShowAboutScreen(false);
+    setShowProfileScreen(false);
+    setShowCameraScan(false);
+    setShowAnalysis(false);
+    setShowResults(false);
+    setShowSignIn(false);
+    setShowSignUp(false);
+    setShowVerification(false);
+    setShowPermissions(false);
+    setShowForgotPassword(false);
+    setShowResetPassword(false);
+    setShowHowItWorks(false);
+    setShowPaywall(false);
+    setShowLandingScreen(true); // Explicitly show landing screen
+  };
+
   const handleProfileClick = () => {
     setShowProfileScreen(true);
     setShowScanScreen(false);
@@ -967,6 +978,8 @@ function AppContent() {
           isAuthenticated={isAuthenticated}
           user={user}
           onHowItWorks={() => setShowHowItWorks(true)}
+          onWatchVideo={handleWatchVideo}
+          onHomeClick={handleHomeClick}
         />
       );
     }
@@ -986,8 +999,8 @@ function AppContent() {
     }
 
     // Default: Show landing screen for unauthenticated users
-    // For authenticated users, show scan screen as default
-    if (isAuthenticated) {
+    // For authenticated users, show scan screen as default (unless landing screen was explicitly requested via home button)
+    if (isAuthenticated && !showLandingScreen) {
       // If authenticated but no screen is showing, show scan screen
       return (
         <ScanScreen
@@ -998,11 +1011,14 @@ function AppContent() {
           onProfileClick={handleProfileClick}
           isAuthenticated={isAuthenticated}
           user={user}
+          onHowItWorks={() => setShowHowItWorks(true)}
+          onWatchVideo={handleWatchVideo}
+          onHomeClick={handleHomeClick}
         />
       );
     }
 
-    // Landing screen for unauthenticated users
+    // Landing screen for unauthenticated users or when home button is clicked (showLandingScreen is true)
     return (
       <View style={styles.container}>
         <View style={styles.contentContainer}>
@@ -1014,14 +1030,19 @@ function AppContent() {
           <View style={styles.welcomeContainer}>
             <Text style={styles.welcomeText}>Welcome to Catfish</Text>
             <Text style={styles.taglineText}>Detect AI-Generated Images Instantly</Text>
+            <Text style={styles.taglineTextExp1}>Upload a photo to see whether it’s verified, inconclusive, or fake
+            in secounds.”</Text>
+            <Text style={styles.taglineTextExp}>Before you invest your time, emotion or
+            money- know if the photo is real.</Text>
+            
           </View>
         </View>
         <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 30) - 5 }]}>
           <View style={{ width: '100%', maxWidth: 345, alignItems: 'center' }}>
-            <SignUpButton onPress={handleSignUp} style={{ marginBottom: 12, width: '100%' }} />
-            <SignInButton onPress={handleSignIn} style={{ marginBottom: 12, width: '100%' }} />
+            <SignUpButton onPress={() => { setShowLandingScreen(false); handleSignUp(); }} style={{ marginBottom: 12, width: '100%' }} />
+            <SignInButton onPress={() => { setShowLandingScreen(false); handleSignIn(); }} style={{ marginBottom: 12, width: '100%' }} />
             <ContinueAsGuestButton 
-              onPress={handleContinueAsGuest} 
+              onPress={() => { setShowLandingScreen(false); handleContinueAsGuest(); }} 
               isLoading={isCreatingGuest}
               style={{ width: '100%' }} 
             />

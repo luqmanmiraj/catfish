@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { Text, View, TouchableOpacity, Modal, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path, G, Defs, LinearGradient as SvgLinearGradient, Stop, Filter, FeFlood, FeColorMatrix, FeMorphology, FeOffset, FeGaussianBlur, FeComposite, FeBlend } from 'react-native-svg';
@@ -9,7 +9,7 @@ import { scanStyles } from '../styles';
 import colors from '../colors';
 import { useSubscription } from '../context/SubscriptionContext';
 
-const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onProfileClick, isAuthenticated, user, onHowItWorks }) => {
+const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onProfileClick, isAuthenticated, user, onHowItWorks, onWatchVideo, onHomeClick }) => {
   const insets = useSafeAreaInsets();
   const { scansRemaining } = useSubscription();
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
@@ -90,9 +90,35 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
                   fill="black"
                 />
               </Svg>
-              <Text style={scanStyles.upgradeText}>Upgrade</Text>
+              <Text style={scanStyles.upgradeText}>Buy Scans</Text>
             </LinearGradient>
           </TouchableOpacity>
+          {onHomeClick && (
+            <TouchableOpacity
+              onPress={onHomeClick}
+              activeOpacity={0.8}
+              style={scanStyles.homeButton}
+            >
+              <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <Path
+                  d="M10 2L3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19H15C15.5304 19 16.0391 18.7893 16.4142 18.4142C16.7893 18.0391 17 17.5304 17 17V7L10 2Z"
+                  stroke={colors.primary}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <Path
+                  d="M7 19V11H13V19"
+                  stroke={colors.primary}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </Svg>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -108,6 +134,15 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
             >
               <Text style={scanStyles.howItWorksText}>How it works?</Text>
             </TouchableOpacity>
+            {onWatchVideo && (
+              <TouchableOpacity
+                onPress={onWatchVideo}
+                activeOpacity={0.7}
+                style={scanStyles.howItWorksVideoButton}
+              >
+                <Text style={scanStyles.howItWorksVideo}>Watch Video</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -371,19 +406,19 @@ const welcomeModalStyles = StyleSheet.create({
     marginTop: 20,
   },
   freeScansContainer: {
-    backgroundColor: 'rgba(10, 180, 224, 0.2)',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    // backgroundColor: 'rgba(10, 180, 224, 0.2)',
+    // borderWidth: 2,
+    // borderColor: colors.primary,
+    // borderRadius: 8,
+    // paddingVertical: 6,
+    // paddingHorizontal: 16,
+    marginBottom: 20,
   },
   freeScansText: {
-    fontSize: 18,
-    color: colors.primary,
+    fontSize: 16,
+    color: colors.yellow,
     fontWeight: 'bold',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   pricingText: {
     fontSize: 16,

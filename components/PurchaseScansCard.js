@@ -9,7 +9,7 @@ const PurchaseScansCard = ({ onUpgrade }) => {
   return (
     <View style={profileStyles.upgradeCard}>
       <View style={profileStyles.pricingInfo}>
-        <Text style={profileStyles.pricingTitle}>Get 3 free scans on signup</Text>
+        <Text style={profileStyles.pricingTitle}>Get 5 free scans on signup</Text>
         <View style={profileStyles.pricingPackages}>
           <View style={profileStyles.pricingPackage}>
             <Text style={profileStyles.packageScans}>15 scans</Text>

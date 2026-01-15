@@ -47,10 +47,10 @@ const UserInfoCard = ({ displayName, displayEmail, isAuthenticated, scansRemaini
           <Text style={profileStyles.statNumber}>{scansRemaining || 0}</Text>
           <Text style={profileStyles.statLabel}>Scans Left</Text>
         </View>
-        <View style={profileStyles.statItem}>
+        {/* <View style={profileStyles.statItem}>
           <Text style={profileStyles.statNumber}>{tokenBalance || 0}</Text>
           <Text style={profileStyles.statLabel}>Token Balance</Text>
-        </View>
+        </View> */}
       </View>
     </View>
   );

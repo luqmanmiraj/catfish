@@ -49,12 +49,22 @@ async function setGalleryPopulated() {
 
 /**
  * Request media library permissions
+ * Only requests image permissions, not audio
  */
 async function requestMediaLibraryPermission() {
   try {
+    // Request permissions - expo-media-library will only request what's configured in app.json
+    // The plugin configuration ensures only image permissions are requested, not audio
     const { status } = await MediaLibrary.requestPermissionsAsync();
     return status === 'granted';
   } catch (error) {
+    // Handle the AUDIO permission error gracefully
+    // This can happen if expo-media-library tries to request AUDIO permission
+    // but it's not declared in AndroidManifest (which is correct - we don't need it)
+    if (error.message && error.message.includes('AUDIO')) {
+      console.warn('Media library permission request failed due to AUDIO permission (expected - we only need image permissions). Gallery population will be skipped.');
+      return false;
+    }
     console.error('Error requesting media library permission:', error);
     return false;
   }

@@ -52,7 +52,7 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
       if (confidence != null) {
         const pct = Math.round(Number(confidence));
         if (!Number.isNaN(pct)) {
-          subheadline = `High confidence fake or AI (${pct}% confidence)`;
+          subheadline = `High confidence that AI was used (${pct}% confidence)`;
         }
       }
       return {
