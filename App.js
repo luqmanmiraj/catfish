@@ -34,9 +34,12 @@ import LabelNoteModal from './components/LabelNoteModal';
 import { getScanHistory, updateScanHistory, createScanHistory } from './services/subscriptionApi';
 import { populateGalleryWithSamples } from './services/galleryService';
 import * as Analytics from './services/analyticsService';
+import * as SentryService from './services/sentryService';
+import * as PostHogService from './services/posthogService';
 import apiConfig from './config/apiConfig';
 import styles from './styles';
 import colors from './colors';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function AppContent() {
   const insets = useSafeAreaInsets();
@@ -364,6 +367,14 @@ function AppContent() {
 
   const handleImageSelected = (imageUri) => {
     setSelectedImageUri(imageUri);
+    // Track photo selected event
+    PostHogService.trackPhotoSelected({
+      has_image: !!imageUri,
+    });
+    // Track photo selected event
+    PostHogService.trackPhotoSelected({
+      has_image: !!imageUri,
+    });
     setAnalysisResult(null);
     setShowCameraScan(false);
     setShowAnalysis(true);
@@ -385,6 +396,11 @@ function AppContent() {
           deepfake_score: result.deepfakeScore || result.confidence || null,
           ai_probability: result.aiProbability || null,
           human_probability: result.humanProbability || null,
+        });
+        // Track in PostHog
+        PostHogService.trackScanCompleted({
+          result_status: result.status || 'unknown',
+          scan_id: result.requestId || result.sightengineRequestId || result.gowinstonRequestId || null,
         });
       } catch (error) {
         console.error('Error tracking scan completed event:', error);
@@ -1038,9 +1054,21 @@ function AppContent() {
 }
 
 export default function App() {
-  // Initialize analytics on app start
+  // Initialize Sentry, PostHog, and analytics on app start
   useEffect(() => {
-    const initAnalytics = async () => {
+    const initializeServices = async () => {
+      // Initialize Sentry first (for error tracking)
+      await SentryService.initializeSentry({
+        filterDevErrors: false, // Track errors in dev too
+      });
+
+      // Initialize PostHog (for product analytics)
+      await PostHogService.initializePostHog();
+      
+      // Track app opened event
+      PostHogService.trackAppOpened();
+
+      // Initialize analytics (marketing analytics)
       await Analytics.initializeAnalytics({
         meta: {
           appId: apiConfig.META_APP_ID,
@@ -1051,16 +1079,18 @@ export default function App() {
         },
       });
     };
-    initAnalytics();
+    initializeServices();
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <AppContent />
-        </SubscriptionProvider>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <SubscriptionProvider>
+            <AppContent />
+          </SubscriptionProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

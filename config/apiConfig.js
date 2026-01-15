@@ -37,6 +37,16 @@ const META_PIXEL_ID = null; // Set your Meta Pixel ID here (for CAPI)
 // Get this from Singular Dashboard
 const SINGULAR_API_KEY = null; // Set your Singular API Key here
 
+// Sentry Error Monitoring Configuration
+// Get DSN from Sentry Dashboard → Settings → Projects → Client Keys (DSN)
+// Use the same DSN for both iOS and Android, or separate DSNs if needed
+const SENTRY_DSN = null; // Set your Sentry DSN here (e.g., 'https://xxx@sentry.io/xxx')
+
+// PostHog Analytics Configuration
+// Get API key from PostHog Dashboard → Project Settings → API Key
+const POSTHOG_API_KEY = null; // Set your PostHog API key here (e.g., 'phc_xxx')
+const POSTHOG_HOST = 'https://app.posthog.com'; // Use 'https://app.posthog.com' or your self-hosted URL
+
 export default {
   API_BASE_URL,
   REVENUECAT_API_KEY,
@@ -44,5 +54,8 @@ export default {
   META_APP_ID,
   META_PIXEL_ID,
   SINGULAR_API_KEY,
+  SENTRY_DSN,
+  POSTHOG_API_KEY,
+  POSTHOG_HOST,
 };
 

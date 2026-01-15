@@ -8,6 +8,8 @@ import * as authApi from '../services/authApi';
 import * as authStorage from '../services/authStorage';
 import { getDeviceId } from '../utils/deviceLogger';
 import * as Analytics from '../services/analyticsService';
+import * as SentryService from '../services/sentryService';
+import * as PostHogService from '../services/posthogService';
 
 const AuthContext = createContext(null);
 
@@ -35,19 +37,45 @@ export function AuthProvider({ children }) {
         // Verify token is still valid by getting user info
         try {
           const userInfo = await authApi.getUserInfo(token);
-          setUser(userInfo.userAttributes || storedUser);
+          const userAttributes = userInfo.userAttributes || storedUser;
+          setUser(userAttributes);
           setAccessToken(token);
           setIsAuthenticated(true);
+          // Set Sentry and PostHog user
+          const userId = userAttributes?.sub || userAttributes?.email || userAttributes?.['cognito:username'];
+          if (userId) {
+            SentryService.setUser(userId, {
+              email: userAttributes?.email,
+              is_guest: userAttributes?.is_guest === 'true',
+            });
+            PostHogService.identify(userId, {
+              email: userAttributes?.email,
+              is_guest: userAttributes?.is_guest === 'true',
+            });
+          }
         } catch (error) {
           // Token might be expired, try to refresh
           const refreshToken = await authStorage.getRefreshToken();
           if (refreshToken) {
             try {
               const newTokens = await authApi.refreshToken(refreshToken);
-              await authStorage.storeAuthData(newTokens, userInfo?.userAttributes || storedUser);
+              const userAttributes = userInfo?.userAttributes || storedUser;
+              await authStorage.storeAuthData(newTokens, userAttributes);
               setAccessToken(newTokens.accessToken);
-              setUser(userInfo?.userAttributes || storedUser);
+              setUser(userAttributes);
               setIsAuthenticated(true);
+              // Set Sentry and PostHog user
+              const userId = userAttributes?.sub || userAttributes?.email || userAttributes?.['cognito:username'];
+              if (userId) {
+                SentryService.setUser(userId, {
+                  email: userAttributes?.email,
+                  is_guest: userAttributes?.is_guest === 'true',
+                });
+                PostHogService.identify(userId, {
+                  email: userAttributes?.email,
+                  is_guest: userAttributes?.is_guest === 'true',
+                });
+              }
             } catch (refreshError) {
               // Refresh failed, clear auth data
               await authStorage.clearAuthData();
@@ -182,11 +210,21 @@ export function AuthProvider({ children }) {
         setAccessToken(result.accessToken);
         setIsAuthenticated(true);
         
-        // Track sign in event
+        // Track sign in event and set Sentry/PostHog user
         try {
           const userId = userInfo?.userAttributes?.sub || userInfo?.userAttributes?.email || userInfo?.userAttributes?.['cognito:username'] || email;
           await Analytics.setUserId(userId);
           await Analytics.trackSignIn({ user_id: userId });
+          // Set Sentry user
+          SentryService.setUser(userId, {
+            email: userInfo?.userAttributes?.email || email,
+            is_guest: false,
+          });
+          // Set PostHog user
+          PostHogService.identify(userId, {
+            email: userInfo?.userAttributes?.email || email,
+            is_guest: false,
+          });
         } catch (error) {
           console.error('Error tracking sign in event:', error);
         }
@@ -210,6 +248,20 @@ export function AuthProvider({ children }) {
         await Analytics.clearUserId();
       } catch (error) {
         console.error('Error clearing analytics user ID:', error);
+      }
+      
+      // Clear Sentry user
+      try {
+        SentryService.clearUser();
+      } catch (error) {
+        console.error('Error clearing Sentry user:', error);
+      }
+      
+      // Clear PostHog user
+      try {
+        PostHogService.reset();
+      } catch (error) {
+        console.error('Error clearing PostHog user:', error);
       }
       
       await authStorage.clearAuthData();
@@ -302,7 +354,7 @@ export function AuthProvider({ children }) {
         setAccessToken(result.accessToken);
         setIsAuthenticated(true);
         
-        // Track app initialization event (guest signup)
+        // Track app initialization event (guest signup) and set Sentry user
         try {
           const userId = userInfo?.userAttributes?.sub || userInfo?.userAttributes?.email || userInfo?.userAttributes?.['cognito:username'] || null;
           await Analytics.setUserId(userId);
@@ -310,6 +362,17 @@ export function AuthProvider({ children }) {
             user_id: userId,
             is_guest: true,
           });
+          // Set Sentry and PostHog user
+          if (userId) {
+            SentryService.setUser(userId, {
+              email: userInfo?.userAttributes?.email,
+              is_guest: true,
+            });
+            PostHogService.identify(userId, {
+              email: userInfo?.userAttributes?.email,
+              is_guest: true,
+            });
+          }
         } catch (error) {
           console.error('Error tracking app initialization event:', error);
         }

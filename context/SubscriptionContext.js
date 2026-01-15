@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import * as RevenueCatService from '../services/revenueCatService';
 import * as SubscriptionApi from '../services/subscriptionApi';
 import * as Analytics from '../services/analyticsService';
+import * as PostHogService from '../services/posthogService';
 
 // Export TEKJIN_PRO_ENTITLEMENT for use in components
 export { RevenueCatService };
@@ -237,6 +238,17 @@ export function SubscriptionProvider({ children }) {
       
       // Refresh token balance after purchase
       await refreshSubscriptionStatus();
+      
+      // Track purchase completed event in PostHog
+      try {
+        PostHogService.trackPurchaseCompleted({
+          pack_id: packId,
+          transaction_id: customerInfo.originalPurchaseDate || Date.now().toString(),
+        });
+      } catch (error) {
+        console.error('Error tracking purchase in PostHog:', error);
+      }
+      
       return customerInfo;
     } catch (error) {
       console.error('Error purchasing token pack:', error);
