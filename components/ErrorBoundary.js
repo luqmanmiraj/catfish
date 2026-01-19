@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import * as Sentry from '@sentry/react-native';
 import * as SentryService from '../services/sentryService';
 import colors from '../colors';
 import styles from '../styles';
@@ -114,4 +113,4 @@ const errorBoundaryStyles = StyleSheet.create({
   },
 });
 
-export default Sentry.wrap(ErrorBoundary);
+export default ErrorBoundary;

@@ -3,8 +3,24 @@
  * Wrapper for Meta SDK event tracking with AEM support
  */
 
-import { Settings, AppEventsLogger } from 'react-native-fbsdk-next';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+// Conditionally import Meta SDK - only available in development builds, not in Expo Go
+let Settings = null;
+let AppEventsLogger = null;
+try {
+  const isExpoGo = Constants.appOwnership === 'expo';
+  if (!isExpoGo) {
+    const MetaSDK = require('react-native-fbsdk-next');
+    Settings = MetaSDK.Settings;
+    AppEventsLogger = MetaSDK.AppEventsLogger;
+  } else {
+    console.log('Running in Expo Go - Meta SDK not available');
+  }
+} catch (error) {
+  console.log('Meta SDK module not available:', error.message);
+}
 
 let isInitialized = false;
 let currentUserId = null;
@@ -19,6 +35,12 @@ let metaPixelId = null;
  */
 export async function initialize(config = {}) {
   try {
+    // Check if Meta SDK is available (not in Expo Go)
+    if (!Settings || !AppEventsLogger) {
+      console.warn('Meta SDK not available (running in Expo Go). App will continue without Meta analytics.');
+      return;
+    }
+
     metaAppId = config.appId;
     metaPixelId = config.pixelId;
 
@@ -80,7 +102,7 @@ function generateEventId() {
  * @param {Object} eventParams - Event parameters
  */
 export async function trackEvent(eventName, eventParams = {}) {
-  if (!isInitialized) {
+  if (!AppEventsLogger || !isInitialized) {
     console.warn('Meta SDK not initialized, skipping event:', eventName);
     return;
   }
@@ -122,6 +144,11 @@ export async function trackEvent(eventName, eventParams = {}) {
  * @param {Object} params - Purchase parameters
  */
 export async function trackPurchase(params = {}) {
+  if (!AppEventsLogger || !isInitialized) {
+    console.warn('Meta SDK not initialized, skipping purchase event');
+    return;
+  }
+
   const { value, currency = 'USD', ...otherParams } = params;
 
   try {

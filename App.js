@@ -1076,6 +1076,7 @@ export default function App() {
         },
         singular: {
           apiKey: apiConfig.SINGULAR_API_KEY,
+          secret: apiConfig.SINGULAR_SECRET,
         },
       });
     };

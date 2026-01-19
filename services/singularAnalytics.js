@@ -3,31 +3,57 @@
  * Wrapper for Singular SDK event tracking
  */
 
-// Note: Singular SDK package name may vary
-// Using placeholder - will need to install actual package
-// import Singular from 'singular-react-native';
+import Constants from 'expo-constants';
+
+// Conditionally import Singular SDK - only available in development builds, not in Expo Go
+let Singular = null;
+let SingularConfig = null;
+try {
+  const isExpoGo = Constants.appOwnership === 'expo';
+  if (!isExpoGo) {
+    const SingularSDK = require('singular-react-native');
+    Singular = SingularSDK.Singular;
+    SingularConfig = SingularSDK.SingularConfig;
+  } else {
+    console.log('Running in Expo Go - Singular SDK not available');
+  }
+} catch (error) {
+  console.log('Singular SDK module not available:', error.message);
+}
 
 let isInitialized = false;
 let currentUserId = null;
 let singularApiKey = null;
+let singularSecret = null;
 
 /**
  * Initialize Singular SDK
  * @param {Object} config - Configuration object
- * @param {string} config.apiKey - Singular API Key
+ * @param {string} config.apiKey - Singular SDK Key
+ * @param {string} config.secret - Singular SDK Secret
  */
 export async function initialize(config = {}) {
   try {
-    singularApiKey = config.apiKey;
-
-    if (!singularApiKey) {
-      console.warn('Singular API Key not provided, Singular analytics will be disabled');
+    // Check if Singular SDK is available (not in Expo Go)
+    if (!Singular || !SingularConfig) {
+      console.warn('Singular SDK not available (running in Expo Go). App will continue without Singular analytics.');
       return;
     }
 
-    // TODO: Initialize Singular SDK when package is installed
-    // Singular.initialize(singularApiKey);
+    singularApiKey = config.apiKey;
+    singularSecret = config.secret;
 
+    if (!singularApiKey || !singularSecret) {
+      console.warn('Singular API Key or Secret not provided, Singular analytics will be disabled');
+      return;
+    }
+
+    // Initialize Singular SDK
+    const singularConfig = new SingularConfig(singularApiKey, singularSecret)
+      .withLoggingEnabled(false); // Set to true for debugging
+    
+    Singular.init(singularConfig);
+    
     isInitialized = true;
     console.log('Singular SDK initialized');
   } catch (error) {
@@ -43,8 +69,9 @@ export async function initialize(config = {}) {
 export async function setUserId(userId) {
   try {
     currentUserId = userId;
-    // TODO: Set user ID in Singular SDK
-    // Singular.setUserId(userId);
+    if (Singular && isInitialized && userId) {
+      Singular.setCustomUserId(userId);
+    }
   } catch (error) {
     console.error('Error setting Singular user ID:', error);
   }
@@ -56,8 +83,9 @@ export async function setUserId(userId) {
 export async function clearUserId() {
   try {
     currentUserId = null;
-    // TODO: Clear user ID in Singular SDK
-    // Singular.clearUserId();
+    if (Singular && isInitialized) {
+      Singular.unsetCustomUserId();
+    }
   } catch (error) {
     console.error('Error clearing Singular user ID:', error);
   }
@@ -69,16 +97,13 @@ export async function clearUserId() {
  * @param {Object} eventParams - Event parameters
  */
 export async function trackEvent(eventName, eventParams = {}) {
-  if (!isInitialized) {
+  if (!Singular || !isInitialized) {
     console.warn('Singular SDK not initialized, skipping event:', eventName);
     return;
   }
 
   try {
-    // TODO: Track event with Singular SDK when package is installed
-    // Singular.event(eventName, eventParams);
-
-    // For now, just log
+    Singular.eventWithArgs(eventName, eventParams);
     console.log(`Singular event tracked: ${eventName}`, {
       ...eventParams,
       user_id: currentUserId,
