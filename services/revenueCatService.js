@@ -1,9 +1,28 @@
-import Purchases, { LOG_LEVEL, PurchasesError } from 'react-native-purchases';
-import PurchasesUI from 'react-native-purchases-ui';
 import { Platform, Alert } from 'react-native';
+import Constants from 'expo-constants';
 import apiConfig from '../config/apiConfig';
 
 const { REVENUECAT_API_KEY } = apiConfig;
+
+// Conditionally import RevenueCat - only available in development builds, not in Expo Go
+let Purchases = null;
+let LOG_LEVEL = null;
+let PurchasesError = null;
+let PurchasesUI = null;
+try {
+  const isExpoGo = Constants.appOwnership === 'expo';
+  if (!isExpoGo) {
+    const PurchasesSDK = require('react-native-purchases');
+    Purchases = PurchasesSDK.default;
+    LOG_LEVEL = PurchasesSDK.LOG_LEVEL;
+    PurchasesError = PurchasesSDK.PurchasesError;
+    PurchasesUI = require('react-native-purchases-ui').default;
+  } else {
+    console.log('Running in Expo Go - RevenueCat SDK not available');
+  }
+} catch (error) {
+  console.log('RevenueCat SDK module not available:', error.message);
+}
 
 // Entitlement identifier for Catfish Pro
 export const CATFISH_PRO_ENTITLEMENT = 'Catfish Pro';
@@ -20,10 +39,27 @@ export const PRODUCT_IDENTIFIERS = {
 let isConfigured = false;
 
 /**
+ * Check if RevenueCat is configured (SDK available and API keys set)
+ * @returns {boolean} True if RevenueCat SDK is available, API keys are configured, and SDK is initialized
+ */
+export function isRevenueCatConfigured() {
+  if (!Purchases) return false;
+  const apiKey = Platform.OS === 'ios' ? REVENUECAT_API_KEY?.ios : REVENUECAT_API_KEY?.android;
+  return isConfigured && apiKey && !apiKey.includes('YOUR_') && apiKey.length > 0;
+}
+
+/**
  * Initialize RevenueCat SDK with modern configuration
  * @param {string|null} userId - Optional user ID to link purchases
  */
 export async function initializeRevenueCat(userId = null) {
+  // Check if RevenueCat SDK is available (not in Expo Go)
+  if (!Purchases) {
+    console.warn('RevenueCat SDK not available (running in Expo Go). App will continue without RevenueCat features.');
+    isConfigured = false;
+    return;
+  }
+
   // Check if RevenueCat is disabled (API keys are null/empty)
   const apiKey = Platform.OS === 'ios' ? REVENUECAT_API_KEY.ios : REVENUECAT_API_KEY.android;
   
@@ -153,7 +189,7 @@ export async function getProEntitlementStatus() {
  */
 export async function purchasePackage(packageToPurchase) {
   try {
-    if (!isConfigured) {
+    if (!Purchases || !isConfigured) {
       throw new Error('RevenueCat is not configured');
     }
     
@@ -161,7 +197,7 @@ export async function purchasePackage(packageToPurchase) {
     return customerInfo;
   } catch (error) {
     // Handle specific error types
-    if (error instanceof PurchasesError) {
+    if (PurchasesError && error instanceof PurchasesError) {
       // User cancelled
       if (error.code === PurchasesError.PURCHASE_CANCELLED) {
         throw { ...error, userCancelled: true, message: 'Purchase was cancelled' };
@@ -323,7 +359,7 @@ export async function getPackagesByType() {
  */
 export async function presentPaywall(options = {}) {
   try {
-    if (!isConfigured) {
+    if (!PurchasesUI || !isConfigured) {
       throw new Error('RevenueCat is not configured');
     }
 
@@ -356,7 +392,7 @@ export async function presentPaywall(options = {}) {
  */
 export async function presentCustomerCenter() {
   try {
-    if (!isConfigured) {
+    if (!PurchasesUI || !isConfigured) {
       throw new Error('RevenueCat is not configured');
     }
 
@@ -403,15 +439,6 @@ export async function syncPurchases() {
     console.warn('Error syncing purchases:', error);
     throw error;
   }
-}
-
-/**
- * Check if RevenueCat is configured
- * @returns {boolean} True if RevenueCat API keys are configured and SDK is initialized
- */
-export function isRevenueCatConfigured() {
-  const apiKey = Platform.OS === 'ios' ? REVENUECAT_API_KEY.ios : REVENUECAT_API_KEY.android;
-  return isConfigured && apiKey && !apiKey.includes('YOUR_') && apiKey.length > 0;
 }
 
 /**

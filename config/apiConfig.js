@@ -30,21 +30,22 @@ const ANALYSIS_ENDPOINT = 'gowinston/detect';
 
 // Meta (Facebook) SDK Configuration
 // Get these from Facebook Developer Console
-const META_APP_ID = '894575559718778'; // Set your Facebook App ID here
-const META_PIXEL_ID = null; // Set your Meta Pixel ID here (for CAPI)
+const META_APP_ID = '2079417662833739'; // Set your Facebook App ID here
+const META_PIXEL_ID = '1580597886592592'; // Set your Meta Pixel ID here (for CAPI)
 
 // Singular Analytics Configuration
-// Get this from Singular Dashboard
-const SINGULAR_API_KEY = null; // Set your Singular API Key here
+// Get these from Singular Dashboard → Settings → SDK Keys
+const SINGULAR_API_KEY = null; // Set your Singular SDK Key here
+const SINGULAR_SECRET = null; // Set your Singular SDK Secret here
 
 // Sentry Error Monitoring Configuration
 // Get DSN from Sentry Dashboard → Settings → Projects → Client Keys (DSN)
 // Use the same DSN for both iOS and Android, or separate DSNs if needed
-const SENTRY_DSN = null; // Set your Sentry DSN here (e.g., 'https://xxx@sentry.io/xxx')
+const SENTRY_DSN = 'https://1d3093833edb098236620ff3284c15d3@o4510698112679936.ingest.us.sentry.io/4510698121396224'; // Set your Sentry DSN here (e.g., 'https://xxx@sentry.io/xxx')
 
 // PostHog Analytics Configuration
 // Get API key from PostHog Dashboard → Project Settings → API Key
-const POSTHOG_API_KEY = null; // Set your PostHog API key here (e.g., 'phc_xxx')
+const POSTHOG_API_KEY = 'phc_drdNZD5osCDsedf0jVvyVlMAXMbc6xE05ba4xIS1CHd'; // Set your PostHog API key here (e.g., 'phc_xxx')
 const POSTHOG_HOST = 'https://app.posthog.com'; // Use 'https://app.posthog.com' or your self-hosted URL
 
 export default {
@@ -54,6 +55,7 @@ export default {
   META_APP_ID,
   META_PIXEL_ID,
   SINGULAR_API_KEY,
+  SINGULAR_SECRET,
   SENTRY_DSN,
   POSTHOG_API_KEY,
   POSTHOG_HOST,

@@ -43,14 +43,14 @@
       "eas": {
         "projectId": "cbf78e18-4448-45c9-9bb2-c9e85e184882"
       },
-      "facebookAppId": "894575559718778",
+      "facebookAppId": "2079417662833739",
       "facebookDisplayName": "Catfish Crasher"
     },
     "plugins": [
       [
         "react-native-fbsdk-next",
         {
-          "appID": "894575559718778",
+          "appID": "2079417662833739",
           "displayName": "Catfish Crasher",
           "clientToken": null,
           "scheme": "fb"

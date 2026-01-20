@@ -3,11 +3,25 @@
  * Provides centralized error tracking and crash reporting
  */
 
-import * as Sentry from '@sentry/react-native';
 import apiConfig from '../config/apiConfig';
 import { Platform } from 'react-native';
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+
+// Conditionally import Sentry - only available in development builds, not in Expo Go
+let Sentry = null;
+try {
+  // Check if we're in Expo Go
+  const isExpoGo = Constants.appOwnership === 'expo';
+  if (!isExpoGo) {
+    Sentry = require('@sentry/react-native');
+  } else {
+    console.log('Running in Expo Go - Sentry native module not available');
+  }
+} catch (error) {
+  console.log('Sentry module not available:', error.message);
+}
 
 let isInitialized = false;
 
@@ -16,6 +30,13 @@ let isInitialized = false;
  * @param {Object} options - Optional configuration
  */
 export async function initializeSentry(options = {}) {
+  // Check if Sentry module is available (not in Expo Go)
+  if (!Sentry) {
+    console.warn('Sentry module not available (running in Expo Go). App will continue without error monitoring.');
+    isInitialized = false;
+    return;
+  }
+
   // Check if Sentry is disabled (DSN is null/empty)
   if (!apiConfig.SENTRY_DSN || apiConfig.SENTRY_DSN.trim() === '') {
     console.warn('Sentry is disabled. App will continue without error monitoring.');
@@ -93,7 +114,7 @@ export async function initializeSentry(options = {}) {
  * @param {Object} userData - Additional user data
  */
 export function setUser(userId, userData = {}) {
-  if (!isInitialized) return;
+  if (!Sentry || !isInitialized) return;
 
   try {
     Sentry.setUser({
@@ -109,7 +130,7 @@ export function setUser(userId, userData = {}) {
  * Clear user context (e.g., on logout)
  */
 export function clearUser() {
-  if (!isInitialized) return;
+  if (!Sentry || !isInitialized) return;
 
   try {
     Sentry.setUser(null);
@@ -124,7 +145,7 @@ export function clearUser() {
  * @param {Object} context - Additional context
  */
 export function captureException(error, context = {}) {
-  if (!isInitialized) {
+  if (!Sentry || !isInitialized) {
     console.error('Sentry not initialized, error:', error);
     return;
   }
@@ -155,7 +176,7 @@ export function captureException(error, context = {}) {
  * @param {Object} context - Additional context
  */
 export function captureMessage(message, level = 'info', context = {}) {
-  if (!isInitialized) {
+  if (!Sentry || !isInitialized) {
     console.log(`[Sentry not initialized] ${level}:`, message);
     return;
   }
@@ -187,7 +208,7 @@ export function captureMessage(message, level = 'info', context = {}) {
  * @param {Object} data - Additional data
  */
 export function addBreadcrumb(message, category = 'default', level = 'info', data = {}) {
-  if (!isInitialized) return;
+  if (!Sentry || !isInitialized) return;
 
   try {
     Sentry.addBreadcrumb({
@@ -208,7 +229,7 @@ export function addBreadcrumb(message, category = 'default', level = 'info', dat
  * @param {Object} extra - Extra data to set
  */
 export function setContext(tags = {}, extra = {}) {
-  if (!isInitialized) return;
+  if (!Sentry || !isInitialized) return;
 
   try {
     Sentry.withScope((scope) => {

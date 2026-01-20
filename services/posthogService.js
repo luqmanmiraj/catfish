@@ -3,9 +3,22 @@
  * Lightweight product analytics for tracking key app events
  */
 
-import PostHog from 'posthog-react-native';
 import apiConfig from '../config/apiConfig';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+// Conditionally import PostHog - only available in development builds, not in Expo Go
+let PostHog = null;
+try {
+  const isExpoGo = Constants.appOwnership === 'expo';
+  if (!isExpoGo) {
+    PostHog = require('posthog-react-native').default;
+  } else {
+    console.log('Running in Expo Go - PostHog native module not available');
+  }
+} catch (error) {
+  console.log('PostHog module not available:', error.message);
+}
 
 let isInitialized = false;
 
@@ -14,6 +27,13 @@ let isInitialized = false;
  * @param {Object} options - Optional configuration
  */
 export async function initializePostHog(options = {}) {
+  // Check if PostHog module is available (not in Expo Go)
+  if (!PostHog) {
+    console.warn('PostHog module not available (running in Expo Go). App will continue without product analytics.');
+    isInitialized = false;
+    return;
+  }
+
   // Check if PostHog is disabled (API key is null/empty)
   if (!apiConfig.POSTHOG_API_KEY || apiConfig.POSTHOG_API_KEY.trim() === '') {
     console.warn('PostHog is disabled. App will continue without product analytics.');
@@ -51,7 +71,7 @@ export async function initializePostHog(options = {}) {
  * @param {Object} userProperties - Additional user properties
  */
 export function identify(userId, userProperties = {}) {
-  if (!isInitialized) {
+  if (!PostHog || !isInitialized) {
     console.warn('PostHog not initialized, skipping identify');
     return;
   }
@@ -70,7 +90,7 @@ export function identify(userId, userProperties = {}) {
  * Clear user identification (e.g., on logout)
  */
 export function reset() {
-  if (!isInitialized) return;
+  if (!PostHog || !isInitialized) return;
 
   try {
     PostHog.reset();
@@ -85,7 +105,7 @@ export function reset() {
  * @param {Object} properties - Event properties
  */
 export function track(eventName, properties = {}) {
-  if (!isInitialized) {
+  if (!PostHog || !isInitialized) {
     if (__DEV__) {
       console.log(`[PostHog not initialized] Event: ${eventName}`, properties);
     }
