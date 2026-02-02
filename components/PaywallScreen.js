@@ -9,12 +9,15 @@ import {
   ScrollView,
   Platform,
   Modal,
+  TextInput,
 } from 'react-native';
 import Svg, { Circle, Path, G } from 'react-native-svg';
 import * as RevenueCatService from '../services/revenueCatService';
 import * as Analytics from '../services/analyticsService';
 import { useAuth } from '../context/AuthContext';
 import colors from '../colors';
+
+const DEBUG_OFFERINGS_EMAIL = 'qr8edai@gmail.com';
 
 /**
  * PaywallScreen Component
@@ -31,6 +34,14 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [showRawOfferingsModal, setShowRawOfferingsModal] = useState(false);
+  const [rawOfferingsJson, setRawOfferingsJson] = useState('');
+  const [loadingRawJson, setLoadingRawJson] = useState(false);
+  const [pendingPurchasePackage, setPendingPurchasePackage] = useState(null);
+  const [showDebugModal, setShowDebugModal] = useState(false);
+  const [debugStatusText, setDebugStatusText] = useState('');
+  const [debugOfferingsText, setDebugOfferingsText] = useState('');
+  const [loadingDebug, setLoadingDebug] = useState(false);
   
   // Token pack configurations
   const TOKEN_PACKS = {
@@ -95,32 +106,15 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
     }
   };
 
-  const handlePurchase = async (pkg) => {
-    if (!pkg) {
-      Alert.alert('Error', 'Please select a scan pack');
-      return;
-    }
-
-    // Handle fallback package selection (when RevenueCat packages aren't loaded)
-    if (typeof pkg === 'string' && pkg.startsWith('fallback_')) {
-      const scanCount = parseInt(pkg.replace('fallback_', ''));
-      Alert.alert(
-        'Package Selected',
-        `You selected ${scanCount} scans. Please ensure RevenueCat is configured to complete the purchase.`,
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
+  const runPurchase = async (pkg) => {
+    if (!pkg || typeof pkg === 'string') return;
     try {
       setPurchasing(true);
       const customerInfo = await RevenueCatService.purchasePackage(pkg);
       
-      // Check if purchase was successful
       const hasPro = customerInfo.entitlements.active[RevenueCatService.CATFISH_PRO_ENTITLEMENT] || 
                      customerInfo.entitlements.active[RevenueCatService.TEKJIN_PRO_ENTITLEMENT];
       
-      // Track purchase completed event
       try {
         const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
         const productId = pkg.identifier || pkg.storeProduct?.identifier || 'unknown';
@@ -139,7 +133,6 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
         console.error('Error tracking purchase completed event:', error);
       }
       
-      // Token pack purchase completed
       Alert.alert('Purchase Complete', 'Your scan pack has been added to your account!', [
         { text: 'OK', onPress: () => {
           onPurchaseSuccess?.();
@@ -148,21 +141,88 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       ]);
     } catch (error) {
       console.error('Purchase error:', error);
-      
-      if (error.userCancelled) {
-        // User cancelled, no need to show error
-        return;
-      }
-
+      if (error.userCancelled) return;
       let errorMessage = 'Unable to complete purchase. Please try again.';
-      if (error.message) {
-        errorMessage = error.message;
-      }
-
+      if (error.message) errorMessage = error.message;
       Alert.alert('Purchase Failed', errorMessage);
     } finally {
       setPurchasing(false);
     }
+  };
+
+  const handlePurchase = async (pkg) => {
+    if (!pkg) {
+      Alert.alert('Error', 'Please select a scan pack');
+      return;
+    }
+
+    // Handle fallback package selection (when RevenueCat packages aren't loaded)
+    if (typeof pkg === 'string' && pkg.startsWith('fallback_')) {
+      const scanCount = parseInt(pkg.replace('fallback_', ''), 10);
+      Alert.alert(
+        'Package Selected',
+        `You selected ${scanCount} scans. Please ensure RevenueCat is configured to complete the purchase.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const isDebugUser = (user?.email || user?.attributes?.email) === DEBUG_OFFERINGS_EMAIL;
+    if (isDebugUser) {
+      setPendingPurchasePackage(pkg);
+      setLoadingRawJson(true);
+      setShowRawOfferingsModal(true);
+      try {
+        const json = await RevenueCatService.getOfferingsRawJson();
+        setRawOfferingsJson(json);
+      } catch (e) {
+        setRawOfferingsJson(JSON.stringify({ error: String(e?.message || e) }, null, 2));
+      } finally {
+        setLoadingRawJson(false);
+      }
+      return;
+    }
+
+    await runPurchase(pkg);
+  };
+
+  const handleRawOfferingsContinue = () => {
+    setShowRawOfferingsModal(false);
+    const pkg = pendingPurchasePackage;
+    setPendingPurchasePackage(null);
+    setRawOfferingsJson('');
+    if (pkg) runPurchase(pkg);
+  };
+
+  const handleRawOfferingsClose = () => {
+    setShowRawOfferingsModal(false);
+    setPendingPurchasePackage(null);
+    setRawOfferingsJson('');
+  };
+
+  const handleOpenDebugModal = async () => {
+    setShowDebugModal(true);
+    setLoadingDebug(true);
+    setDebugStatusText('');
+    setDebugOfferingsText('');
+    try {
+      const status = RevenueCatService.getRevenueCatConfigStatus?.();
+      const statusStr = JSON.stringify(status ?? { error: 'getRevenueCatConfigStatus not available' }, null, 2);
+      setDebugStatusText(statusStr);
+      const offeringsStr = await RevenueCatService.getOfferingsRawJson();
+      setDebugOfferingsText(offeringsStr);
+    } catch (e) {
+      setDebugStatusText(JSON.stringify({ error: String(e?.message || e) }, null, 2));
+      setDebugOfferingsText('');
+    } finally {
+      setLoadingDebug(false);
+    }
+  };
+
+  const handleCloseDebugModal = () => {
+    setShowDebugModal(false);
+    setDebugStatusText('');
+    setDebugOfferingsText('');
   };
 
   const handleUseRevenueCatPaywall = async () => {
@@ -342,6 +402,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
   }
 
   return (
+    <>
     <Modal
       visible={true}
       animationType="slide"
@@ -349,6 +410,45 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       onRequestClose={onClose}
     >
       <View style={styles.container}>
+        {showDebugModal ? (
+          /* Debug panel inside same modal (avoids nested modal not showing on device) */
+          <View style={styles.rawJsonModalContainer}>
+            <Text style={styles.rawJsonModalTitle}>RevenueCat Debug</Text>
+            {loadingDebug ? (
+              <View style={styles.rawJsonLoading}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.rawJsonLoadingText}>Loading...</Text>
+              </View>
+            ) : (
+              <ScrollView
+                style={styles.rawJsonScrollView}
+                contentContainerStyle={styles.rawJsonScrollContent}
+              >
+                <Text style={styles.debugSectionTitle}>Config status</Text>
+                <TextInput
+                  style={styles.rawJsonText}
+                  value={debugStatusText}
+                  multiline
+                  editable={false}
+                />
+                <Text style={[styles.debugSectionTitle, { marginTop: 16 }]}>Offerings (raw)</Text>
+                <TextInput
+                  style={[styles.rawJsonText, { minHeight: 160 }]}
+                  value={debugOfferingsText}
+                  multiline
+                  editable={false}
+                />
+              </ScrollView>
+            )}
+            <TouchableOpacity
+              style={styles.rawJsonCloseButton}
+              onPress={handleCloseDebugModal}
+              disabled={loadingDebug}
+            >
+              <Text style={styles.rawJsonCloseButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Purchase Scan Packs</Text>
@@ -405,6 +505,16 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
           <Text style={styles.restoreButtonText}>Restore Purchases</Text>
         </TouchableOpacity>
 
+        {(user?.email || user?.attributes?.email) === DEBUG_OFFERINGS_EMAIL && (
+          <TouchableOpacity
+            style={styles.debugButton}
+            onPress={handleOpenDebugModal}
+            disabled={purchasing}
+          >
+            <Text style={styles.debugButtonText}>Debug RevenueCat</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={styles.closeButton}
           onPress={onClose}
@@ -418,8 +528,56 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
           All purchases are one-time payments with no recurring billing.
         </Text>
         </ScrollView>
+        )}
       </View>
     </Modal>
+
+    {/* Raw RevenueCat offerings JSON modal (for qr8edai@gmail.com) */}
+    <Modal
+      visible={showRawOfferingsModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleRawOfferingsClose}
+    >
+      <View style={styles.rawJsonModalContainer}>
+        <Text style={styles.rawJsonModalTitle}>RevenueCat Offerings (Raw JSON)</Text>
+        {loadingRawJson ? (
+          <View style={styles.rawJsonLoading}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.rawJsonLoadingText}>Loading offerings...</Text>
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.rawJsonScrollView}
+            contentContainerStyle={styles.rawJsonScrollContent}
+          >
+            <TextInput
+              style={styles.rawJsonText}
+              value={rawOfferingsJson}
+              multiline
+              editable={false}
+            />
+          </ScrollView>
+        )}
+        <View style={styles.rawJsonModalButtons}>
+          <TouchableOpacity
+            style={styles.rawJsonContinueButton}
+            onPress={handleRawOfferingsContinue}
+            disabled={loadingRawJson}
+          >
+            <Text style={styles.rawJsonContinueButtonText}>Continue to purchase</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.rawJsonCloseButton}
+            onPress={handleRawOfferingsClose}
+            disabled={loadingRawJson}
+          >
+            <Text style={styles.rawJsonCloseButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -643,6 +801,24 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 16,
   },
+  debugButton: {
+    padding: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.text.secondary,
+    borderRadius: 8,
+  },
+  debugButtonText: {
+    color: colors.text.secondary,
+    fontSize: 14,
+  },
+  debugSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.white,
+    marginBottom: 8,
+  },
   closeButton: {
     padding: 16,
     alignItems: 'center',
@@ -657,5 +833,66 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 18,
+  },
+  rawJsonModalContainer: {
+    flex: 1,
+    backgroundColor: colors.background.dark,
+    padding: 16,
+  },
+  rawJsonModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text.white,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  rawJsonLoading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rawJsonLoadingText: {
+    marginTop: 12,
+    color: colors.text.secondary,
+    fontSize: 14,
+  },
+  rawJsonScrollView: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  rawJsonScrollContent: {
+    paddingBottom: 24,
+  },
+  rawJsonText: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 12,
+    color: colors.text.white,
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 8,
+    minHeight: 200,
+  },
+  rawJsonModalButtons: {
+    gap: 12,
+  },
+  rawJsonContinueButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  rawJsonContinueButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  rawJsonCloseButton: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  rawJsonCloseButtonText: {
+    color: colors.text.secondary,
+    fontSize: 16,
   },
 });

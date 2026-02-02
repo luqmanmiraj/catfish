@@ -49,6 +49,22 @@ export function isRevenueCatConfigured() {
 }
 
 /**
+ * Get RevenueCat config status for on-device debugging (no Xcode/Mac needed).
+ * Use this on the paywall to see why offerings might be empty.
+ * @returns {{ sdkLoaded: boolean, apiKeyPresent: boolean, isConfigured: boolean, appOwnership: string }}
+ */
+export function getRevenueCatConfigStatus() {
+  const apiKey = Platform.OS === 'ios' ? REVENUECAT_API_KEY?.ios : REVENUECAT_API_KEY?.android;
+  const apiKeyPresent = !!(apiKey && typeof apiKey === 'string' && !apiKey.includes('YOUR_') && apiKey.trim().length > 0);
+  return {
+    sdkLoaded: !!Purchases,
+    apiKeyPresent,
+    isConfigured,
+    appOwnership: Constants?.appOwnership ?? 'unknown',
+  };
+}
+
+/**
  * Initialize RevenueCat SDK with modern configuration
  * @param {string|null} userId - Optional user ID to link purchases
  */
@@ -117,6 +133,57 @@ export async function getOfferings() {
   } catch (error) {
     console.warn('Error fetching offerings:', error);
     return null;
+  }
+}
+
+/**
+ * Get raw offerings as JSON string (for debugging). Converts Offerings to a plain
+ * serializable object so it can be displayed. Surfaces the actual SDK error when fetch fails.
+ * @returns {Promise<string>}
+ */
+export async function getOfferingsRawJson() {
+  try {
+    if (!isConfigured || !Purchases) {
+      return JSON.stringify({
+        error: 'RevenueCat not configured or SDK not loaded',
+        isConfigured,
+        sdkLoaded: !!Purchases,
+      }, null, 2);
+    }
+    let offerings;
+    try {
+      offerings = await Purchases.getOfferings();
+    } catch (fetchError) {
+      const msg = fetchError?.message ?? String(fetchError);
+      const code = fetchError?.code ?? fetchError?.userInfo?.code;
+      return JSON.stringify({
+        error: 'Offerings fetch failed',
+        message: msg,
+        code: code != null ? String(code) : undefined,
+        hint: msg.includes('App Store Connect') ? 'Check: bundle ID, IAP linked to version, products in RevenueCat, App Store Connect connected.' : undefined,
+      }, null, 2);
+    }
+    if (!offerings) {
+      return JSON.stringify({ error: 'getOfferings() returned null (no error thrown)' }, null, 2);
+    }
+    const toPlain = (obj) => {
+      if (obj == null) return obj;
+      if (typeof obj !== 'object') return obj;
+      if (Array.isArray(obj)) return obj.map(toPlain);
+      const plain = {};
+      for (const key of Object.keys(obj)) {
+        try {
+          plain[key] = toPlain(obj[key]);
+        } catch (e) {
+          plain[key] = String(obj[key]);
+        }
+      }
+      return plain;
+    };
+    const plainOfferings = toPlain(offerings);
+    return JSON.stringify(plainOfferings, null, 2);
+  } catch (error) {
+    return JSON.stringify({ error: String(error?.message || error) }, null, 2);
   }
 }
 

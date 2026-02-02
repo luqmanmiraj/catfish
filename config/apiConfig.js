@@ -20,13 +20,14 @@ const API_BASE_URL = 'https://3oaimkf4g6.execute-api.us-east-1.amazonaws.com/dev
 // For production, you'll need separate keys: 'appl_' for iOS and 'goog_' for Android
 // DISABLED: Set to null/empty to disable RevenueCat
 const REVENUECAT_API_KEY = {
-  ios: null, // Disabled - set to null to disable RevenueCat
+  ios: 'appl_UWJroankJbGKWZoGAaWiNpXEQEn', // iOS RevenueCat API key
   android: null, // Disabled - set to null to disable RevenueCat
 };
 
 // Analysis endpoint configuration
 // Options: 'analyze' (Sightengine) or 'gowinston/detect' (Gowinston AI)
 const ANALYSIS_ENDPOINT = 'gowinston/detect';
+// const ANALYSIS_ENDPOINT = 'analyze'; // Switched to Sightengine
 
 // Meta (Facebook) SDK Configuration
 // Get these from Facebook Developer Console

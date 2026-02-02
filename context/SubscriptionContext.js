@@ -66,6 +66,12 @@ export function SubscriptionProvider({ children }) {
             ? backendStatus.tokenBalance 
             : (backendStatus.scansRemaining !== undefined ? backendStatus.scansRemaining : 0);
           
+          console.log('📊 Setting token balance from backend response:');
+          console.log('  - backendStatus.tokenBalance:', backendStatus.tokenBalance);
+          console.log('  - backendStatus.scansRemaining:', backendStatus.scansRemaining);
+          console.log('  - Calculated balance:', balance);
+          console.log('  - User:', user?.sub || user?.email || user?.['cognito:username']);
+          
           setTokenBalance(balance);
           setScansRemaining(balance);
           
@@ -105,28 +111,11 @@ export function SubscriptionProvider({ children }) {
 
   /**
    * Check if user can perform a scan
+   * Uses local scansRemaining state (fetched from /subscription/status)
+   * No API call needed - eliminates 502 errors from /subscription/check endpoint
    */
   const checkCanScan = async () => {
-    if (isAuthenticated && accessToken) {
-      try {
-        const result = await SubscriptionApi.checkCanScan(accessToken);
-        return {
-          canScan: result.canScan || (result.scansRemaining > 0),
-          scansRemaining: result.scansRemaining !== undefined ? result.scansRemaining : result.tokenBalance || 0,
-          tokenBalance: result.tokenBalance !== undefined ? result.tokenBalance : result.scansRemaining || 0,
-        };
-      } catch (error) {
-        console.error('Error checking scan eligibility:', error);
-        // Fallback to local check
-        return {
-          canScan: scansRemaining > 0,
-          scansRemaining: scansRemaining,
-          tokenBalance: tokenBalance,
-        };
-      }
-    }
-
-    // Not authenticated or no access token, use local state
+    // Use local state - scansRemaining is already maintained from /subscription/status
     return {
       canScan: scansRemaining > 0,
       scansRemaining: scansRemaining,

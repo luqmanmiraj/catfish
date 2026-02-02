@@ -15,9 +15,12 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
     'Preparing image for analysis...'
   );
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const hasRequestedRef = useRef(false); // Prevent duplicate API calls across re-renders
+  const previousImageUriRef = useRef(null); // Track previous image to detect actual changes
 
   useEffect(() => {
     let isCancelled = false;
+    let isRequestInProgress = false;
     
     // Sync progress state with animated value for percentage display
     const listenerId = progressAnim.addListener(({ value }) => {
@@ -30,6 +33,33 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
       if (!imageUri) {
         return;
       }
+
+      // Check if this is a NEW image (different from previous)
+      const isNewImage = imageUri !== previousImageUriRef.current;
+      
+      if (isNewImage) {
+        console.log('🔄 NEW image detected, allowing analysis');
+        console.log('  Previous URI:', previousImageUriRef.current?.substring(0, 50) + '...');
+        console.log('  New URI:', imageUri?.substring(0, 50) + '...');
+        // Reset flags for new image
+        hasRequestedRef.current = false;
+        previousImageUriRef.current = imageUri;
+      }
+
+      // Prevent duplicate API calls (both within effect and across re-renders)
+      if (isRequestInProgress || hasRequestedRef.current) {
+        console.log('⚠️ API request already in progress or completed, skipping duplicate call');
+        console.log('  - isRequestInProgress:', isRequestInProgress);
+        console.log('  - hasRequestedRef.current:', hasRequestedRef.current);
+        console.log('  - imageUri:', imageUri?.substring(0, 50) + '...');
+        return;
+      }
+      
+      isRequestInProgress = true;
+      hasRequestedRef.current = true;
+      console.log('🔒 API request started - duplicate calls blocked');
+      console.log('📊 This should only appear ONCE per image');
+      console.log('📸 Image URI:', imageUri?.substring(0, 50) + '...');
 
       try {
         setStatusMessage('Preparing image for analysis...');
@@ -76,16 +106,45 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
           console.warn('No access token available, request will be sent without authentication');
         }
         
+        // Prepare request body
+        const requestBody = {
+          image: imageDataUrl,
+        };
+        
+        // Log request details (without full base64 image data)
+        console.log('📤 SCAN API REQUEST:');
+        console.log('URL:', lambdaEndpoint);
+        console.log('Method: POST');
+        console.log('Headers:', JSON.stringify(headers, null, 2));
+        console.log('Request Body (image data length):', {
+          imageDataLength: imageDataUrl.length,
+          imageFormat: imageFormat,
+          hasImageData: !!imageDataUrl,
+        });
+        
+        console.log('🚀 Sending API request (should only happen ONCE per image)');
+        
         const response = await fetch(lambdaEndpoint, {
           method: 'POST',
           headers,
-          body: JSON.stringify({
-            image: imageDataUrl,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
+        isRequestInProgress = false;
+        console.log('🔓 API request completed successfully - duplicate calls unblocked');
+
+        // Log response status
+        console.log('📥 SCAN API RESPONSE STATUS:');
+        console.log('Status:', response.status, response.statusText);
+        console.log('Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+        
         const json = await response.json();
-        console.log('Full Lambda response:', JSON.stringify(json, null, 2));
+        
+        // Log full response in a clearly formatted way
+        console.log('📥 SCAN API RESPONSE JSON:');
+        console.log('==========================================');
+        console.log(JSON.stringify(json, null, 2));
+        console.log('==========================================');
 
         if (isCancelled) {
           return;
@@ -110,19 +169,25 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
           setProgress(100);
           if (onComplete) {
             console.log('Calling onComplete callback with Lambda analysis result');
-            // Pass the full Lambda response including s3Url and requestId for history saving
-            // Lambda returns: { success: true, s3Url: "...", analysis: {...}, requestId: "..." }
+            // Pass the full Lambda response including s3Url, requestId, and tokenBalance
+            // Lambda returns: { success: true, s3Url: "...", analysis: {...}, requestId: "...", tokenBalance: X, scansRemaining: X }
             // Merge analysis data with response metadata
             const result = {
               ...(json.analysis || json),
               s3Url: json.s3Url || null,
               requestId: json.requestId || null,
+              // Include token balance from Lambda response (already decremented by Lambda)
+              tokenBalance: json.tokenBalance !== undefined ? json.tokenBalance : null,
+              scansRemaining: json.scansRemaining !== undefined ? json.scansRemaining : (json.tokenBalance !== undefined ? json.tokenBalance : null),
             };
             onComplete(result);
           }
         });
       } catch (error) {
         console.error('Error analyzing image with Lambda:', error);
+        isRequestInProgress = false;
+        console.log('🔓 API request completed (with error) - duplicate calls unblocked');
+        
         if (isCancelled) {
           return;
         }
@@ -150,7 +215,11 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
 
     return () => {
       isCancelled = true;
+      isRequestInProgress = false;
+      // Note: We DON'T reset hasRequestedRef here to keep flag sticky
+      // It only resets when a truly NEW image is selected
       progressAnim.removeListener(listenerId);
+      console.log('🧹 AnalysisScreen cleanup - request flag kept sticky');
     };
     // Note: accessToken is intentionally not in dependencies - we read it from context when needed
     // eslint-disable-next-line react-hooks/exhaustive-deps

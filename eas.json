@@ -22,16 +22,24 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_NO_CAPABILITY_SYNC": "1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "ios": {
-        "simulator": true,
+        "simulator": false,
         "buildConfiguration": "Release"
       },
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       }
     },
     "production": {
       "distribution": "store",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "ios": {
         "simulator": false
       },

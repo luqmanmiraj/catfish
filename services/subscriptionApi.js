@@ -28,9 +28,19 @@ export async function getSubscriptionStatus(accessToken) {
     }
 
     const data = await response.json();
+    
+    // Log the response for debugging
+    console.log('📊 Subscription Status API Response:');
+    console.log('==========================================');
+    console.log(JSON.stringify(data, null, 2));
+    console.log('==========================================');
+    console.log('Token Balance from API:', data.tokenBalance);
+    console.log('Scans Remaining from API:', data.scansRemaining);
+    
     return data;
   } catch (error) {
     console.error('Error fetching subscription status:', error);
+    console.error('⚠️ API call failed - returning fallback guest status (this may hide actual DB values!)');
     // Return guest user status instead of throwing
     return {
       success: true,
@@ -48,33 +58,20 @@ export async function getSubscriptionStatus(accessToken) {
 
 /**
  * Check if user can perform a scan
+ * @deprecated This function is no longer used. 
+ * The app now uses local scansRemaining state from /subscription/status instead.
+ * This eliminates the need for a separate /subscription/check API call.
+ * 
+ * Kept for backward compatibility but should not be called.
  */
 export async function checkCanScan(accessToken, userId = null) {
-  try {
-    const body = userId ? { userId } : {};
-    const url = `${API_BASE_URL}/subscription/check`;
-    // Log device info before request
-    await logDeviceMetadata(null, url);
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error checking scan eligibility:', error);
-    throw error;
-  }
+  console.warn('checkCanScan API call is deprecated. Use local scansRemaining state instead.');
+  // Return a safe default to prevent errors if somehow still called
+  return {
+    canScan: false,
+    scansRemaining: 0,
+    tokenBalance: 0,
+  };
 }
 
 /**

@@ -342,8 +342,9 @@ export function AuthProvider({ children }) {
         });
 
         // Get user info
+        let userInfo = null;
         try {
-          const userInfo = await authApi.getUserInfo(result.accessToken);
+          userInfo = await authApi.getUserInfo(result.accessToken);
           await authStorage.storeUser(userInfo.userAttributes);
           setUser(userInfo.userAttributes);
         } catch (userError) {

@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity, Alert, ActivityIndicator, Share, Platform, Linking } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import { Text, View, TouchableOpacity, Alert, ActivityIndicator, Share, Platform, Linking, Image, Dimensions } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -13,6 +15,7 @@ import CatfishLogo from './components/CatfishLogo';
 import SignInButton from './components/SignInButton';
 import SignUpButton from './components/SignUpButton';
 import ContinueAsGuestButton from './components/ContinueAsGuestButton';
+import ContinueToAppButton from './components/ContinueToAppButton';
 import PermissionsScreen from './screens/PermissionsScreen';
 import SignInScreen from './screens/SignInScreen';
 import SignUpScreen from './screens/SignUpScreen';
@@ -35,6 +38,7 @@ import { getScanHistory, updateScanHistory, createScanHistory } from './services
 import * as Analytics from './services/analyticsService';
 import * as SentryService from './services/sentryService';
 import * as PostHogService from './services/posthogService';
+import * as SampleImagesService from './services/sampleImagesService';
 import apiConfig from './config/apiConfig';
 import styles from './styles';
 import colors from './colors';
@@ -78,9 +82,14 @@ function AppContent() {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [isCreatingGuest, setIsCreatingGuest] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const compositeViewRef = useRef(null);
+  const [isCreatingComposite, setIsCreatingComposite] = useState(false);
   const [currentScanId, setCurrentScanId] = useState(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0); // Force HistoryScreen refresh
   const [showLabelNoteModal, setShowLabelNoteModal] = useState(false);
   const [showLandingScreen, setShowLandingScreen] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [tokenBalanceBeforeScan, setTokenBalanceBeforeScan] = useState(null);
 
 
   // Check if user is authenticated and RevenueCat is not configured
@@ -271,8 +280,21 @@ function AppContent() {
         };
 
         const result = await createScanHistory(accessToken, scanData);
+        console.log('✅ Scan saved to history:', result);
         setShowLabelNoteModal(false);
         setCurrentScanId(null);
+        
+        // Force HistoryScreen to refresh by updating the key FIRST
+        // This ensures the component remounts and fetches fresh data
+        setHistoryRefreshKey(prev => {
+          const newKey = prev + 1;
+          console.log('🔄 History refresh key updated:', newKey);
+          return newKey;
+        });
+        
+        // Small delay to ensure DynamoDB write has propagated before navigating
+        // This helps ensure the newly saved scan appears in the query results
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Navigate to history screen after successful save
         setShowResults(false);
@@ -309,35 +331,85 @@ function AppContent() {
   };
 
   const handleTapToScan = async () => {
-    // Check if user has tokens before allowing scan
-    if (isAuthenticated) {
-      try {
-        const canScanResult = await checkCanScan();
-        if (!canScanResult.canScan || canScanResult.scansRemaining <= 0) {
-          Alert.alert(
-            'No Scans Remaining',
-            'You have no scans left. Please purchase a scan pack to continue.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Purchase Scans', onPress: () => setShowPaywall(true) },
-            ]
-          );
-          return;
-        }
-      } catch (error) {
-        console.error('Error checking scan eligibility:', error);
-        // Continue with scan attempt if check fails
-      }
+    // Prevent multiple rapid taps
+    if (isScanning) {
+      console.log('⚠️ Scan already in progress, ignoring tap');
+      return;
     }
     
-    setShowCameraScan(true);
+    setIsScanning(true);
+    setTokenBalanceBeforeScan(scansRemaining);
+    console.log('🔒 Scan started - button locked');
+    console.log('📊 Token balance at scan start:', scansRemaining);
+    
+    try {
+      // Check if user has tokens before allowing scan
+      if (isAuthenticated) {
+        try {
+          const canScanResult = await checkCanScan();
+          if (!canScanResult.canScan || canScanResult.scansRemaining <= 0) {
+            Alert.alert(
+              'No Scans Remaining',
+              'You have no scans left. Please purchase a scan pack to continue.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Purchase Scans', onPress: () => setShowPaywall(true) },
+              ]
+            );
+            setIsScanning(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking scan eligibility:', error);
+          // Continue with scan attempt if check fails
+        }
+      }
+      
+      setShowCameraScan(true);
+    } catch (error) {
+      console.error('Error in handleTapToScan:', error);
+      setIsScanning(false);
+    }
   };
 
   const handleCloseCameraScan = () => {
+    console.log('📷 Camera closed WITHOUT selecting image');
+    console.log('📊 Token balance at camera close:', scansRemaining);
+    console.log('📊 Token balance when scan started:', tokenBalanceBeforeScan);
+    console.log('⚠️ NO TOKEN SHOULD BE DEDUCTED - User cancelled');
+    
+    // Verify token count didn't change (it shouldn't!)
+    if (tokenBalanceBeforeScan !== null && scansRemaining !== tokenBalanceBeforeScan) {
+      console.error('🚨 ERROR: Token count changed during camera cancel!');
+      console.error('  Expected:', tokenBalanceBeforeScan);
+      console.error('  Actual:', scansRemaining);
+      console.error('  Difference:', tokenBalanceBeforeScan - scansRemaining);
+      
+      // This shouldn't happen - alert user if in development
+      if (__DEV__) {
+        Alert.alert(
+          'Debug: Token Count Changed',
+          `Tokens changed from ${tokenBalanceBeforeScan} to ${scansRemaining} when canceling camera. This shouldn't happen!`
+        );
+      }
+    }
+    
     setShowCameraScan(false);
+    setTokenBalanceBeforeScan(null);
+    
+    // Reset scanning state when camera is closed without selecting image
+    setTimeout(() => {
+      setIsScanning(false);
+      console.log('🔓 Scan button unlocked (camera closed)');
+      console.log('📊 Final token balance:', scansRemaining);
+    }, 500);
   };
 
   const handleImageSelected = (imageUri) => {
+    console.log('📸 Image SELECTED - Analysis will start');
+    console.log('📊 Token balance BEFORE analysis:', scansRemaining);
+    console.log('⚠️ Token will be decremented by Lambda AFTER successful analysis');
+    
     setSelectedImageUri(imageUri);
     // Track photo selected event
     PostHogService.trackPhotoSelected({
@@ -350,12 +422,22 @@ function AppContent() {
     setAnalysisResult(null);
     setShowCameraScan(false);
     setShowAnalysis(true);
+    // Keep isScanning true until analysis completes
+    console.log('📸 Image selected, starting analysis...');
   };
 
   const handleAnalysisComplete = async (result) => {
     setAnalysisResult(result);
-    console.log('Analysis complete - showing results screen');
-    console.log('Analysis result data:', result);
+    console.log('✅ Analysis complete - showing results screen');
+    console.log('📊 Analysis result data:', result);
+    console.log('📊 Token balance FROM Lambda response:', result?.tokenBalance || result?.scansRemaining || 'NOT PROVIDED');
+    console.log('📊 Current local token balance:', scansRemaining);
+    
+    // Unlock scan button after analysis completes
+    setTimeout(() => {
+      setIsScanning(false);
+      console.log('🔓 Scan button unlocked (analysis complete)');
+    }, 1000);
     
     // Track scan completed event
     if (result) {
@@ -379,16 +461,29 @@ function AppContent() {
       }
     }
     
-    // Decrement token after successful scan (if authenticated)
-    // DEV MODE: Only local decrement - no backend sync
+    // Update token balance from scan API response (Lambda already decremented tokens)
+    // The scan API response includes the updated tokenBalance after decrement
+    // DO NOT call decrementToken() again - Lambda already handled it!
     if (isAuthenticated && result) {
       try {
-        await decrementToken();
-        // Refresh token balance to ensure sync
-        await refreshSubscriptionStatus();
+        // Check if scan response includes updated token balance
+        if (result.tokenBalance !== undefined || result.scansRemaining !== undefined) {
+          const updatedBalance = result.tokenBalance !== undefined 
+            ? result.tokenBalance 
+            : result.scansRemaining;
+          
+          console.log('📊 Token balance from scan response (Lambda already decremented):', updatedBalance);
+          // Refresh subscription status to sync with backend (includes the decremented balance)
+          // This ensures the app state matches the database
+          await refreshSubscriptionStatus();
+        } else {
+          // Fallback: refresh status if balance not in response
+          console.log('⚠️ Token balance not in scan response, refreshing from backend...');
+          await refreshSubscriptionStatus();
+        }
       } catch (error) {
-        console.error('Error decrementing token:', error);
-        // Continue even if token decrement fails - scan was successful
+        console.error('Error updating token balance:', error);
+        // Continue even if update fails - scan was successful
       }
     }
     
@@ -425,6 +520,36 @@ function AppContent() {
     setShowScanScreen(true);
   };
 
+  // Helper function to create composite image with text overlay
+  const createCompositeImage = async (imageUri, result) => {
+    return new Promise((resolve, reject) => {
+      // Set state to show composite view temporarily
+      setIsCreatingComposite(true);
+      
+      // Wait for view to render, then capture
+      setTimeout(async () => {
+        try {
+          if (compositeViewRef.current) {
+            const uri = await captureRef(compositeViewRef.current, {
+              format: 'jpg',
+              quality: 0.9,
+              result: 'tmpfile',
+            });
+            setIsCreatingComposite(false);
+            resolve(uri);
+          } else {
+            setIsCreatingComposite(false);
+            reject(new Error('Composite view ref not available'));
+          }
+        } catch (error) {
+          setIsCreatingComposite(false);
+          console.error('Error capturing composite image:', error);
+          reject(error);
+        }
+      }, 300); // Give more time for view to render
+    });
+  };
+
   const handleShare = async () => {
     if (!selectedImageUri) {
       Alert.alert('Error', 'No image to share');
@@ -432,7 +557,7 @@ function AppContent() {
     }
 
     try {
-      // Get the result status text
+      // Get the result status text for share message
       const resultText = analysisResult?.status === 'deepfake_detected' 
         ? 'Confirmed Fake / AI Generated' 
         : analysisResult?.status === 'authentic' 
@@ -442,26 +567,107 @@ function AppContent() {
       // Prepare share message
       const shareMessage = `Check out this image analysis from Catfish Crasher!\n\nResult: ${resultText}`;
 
-      // Share options - React Native Share API works with URLs
-      const shareOptions = {
-        message: shareMessage,
-        url: selectedImageUri, // This works on iOS for images
-        title: 'Catfish Crasher Analysis',
-      };
-
-      // Try to share
-      const result = await Share.share(shareOptions);
-
-      // Check if user cancelled
-      if (result.action === Share.dismissedAction) {
-        // User dismissed the share dialog, no action needed
-        return;
+      // Create composite image with text overlay
+      let imageFileUri = selectedImageUri;
+      try {
+        imageFileUri = await createCompositeImage(selectedImageUri, analysisResult);
+      } catch (compositeError) {
+        console.warn('Failed to create composite image, using original:', compositeError);
+        // Continue with original image if composite fails
       }
+
+      // Prepare image file for sharing
+      
+      // Check if the image URI is a remote URL or local file
+      if (selectedImageUri.startsWith('http://') || selectedImageUri.startsWith('https://')) {
+        // Download remote image to a temporary file
+        const filename = `share_image_${Date.now()}.jpg`;
+        const localUri = `${FileSystem.cacheDirectory}${filename}`;
+        const downloadResult = await FileSystem.downloadAsync(selectedImageUri, localUri);
+        imageFileUri = downloadResult.uri;
+      } else if (!selectedImageUri.startsWith('file://') && !selectedImageUri.startsWith('content://')) {
+        // Ensure local files have file:// prefix (Android content:// URIs are handled separately)
+        imageFileUri = selectedImageUri.startsWith('/') 
+          ? `file://${selectedImageUri}` 
+          : `file:///${selectedImageUri}`;
+      }
+
+      // Ensure URI is properly formatted for sharing
+      let shareableImageUri = imageFileUri;
+      if (Platform.OS === 'android') {
+        // Android needs file:// URI format for local files
+        if (!imageFileUri.startsWith('file://') && !imageFileUri.startsWith('content://') && !imageFileUri.startsWith('http')) {
+          shareableImageUri = `file://${imageFileUri}`;
+        }
+      }
+
+      // Platform-specific sharing approach
+      if (Platform.OS === 'ios') {
+        // iOS: Share API supports both message and url together
+        const shareOptions = {
+          message: shareMessage,
+          url: shareableImageUri,
+          title: 'Catfish Crasher Analysis',
+        };
+        
+        try {
+          const result = await Share.share(shareOptions);
+          if (result.action === Share.dismissedAction) {
+            return;
+          }
+        } catch (shareError) {
+          console.error('iOS Share failed:', shareError);
+          throw shareError;
+        }
+      } else {
+        // Android: Use expo-sharing directly for reliable image sharing
+        // React Native Share API on Android is unreliable for images
+        const isAvailable = await Sharing.isAvailableAsync();
+        
+        if (!isAvailable) {
+          // Fallback: Try React Native Share API
+          try {
+            const shareOptions = {
+              url: shareableImageUri,
+              title: shareMessage,
+            };
+            const result = await Share.share(shareOptions);
+            if (result.action === Share.dismissedAction) {
+              return;
+            }
+          } catch (shareError) {
+            console.error('Sharing failed:', shareError);
+            Alert.alert('Error', 'Unable to share. Please try again.');
+          }
+          return;
+        }
+
+        // Determine MIME type
+        let mimeType = 'image/jpeg';
+        const uriLower = shareableImageUri.toLowerCase();
+        if (uriLower.includes('.png')) {
+          mimeType = 'image/png';
+        } else if (uriLower.includes('.webp')) {
+          mimeType = 'image/webp';
+        } else if (uriLower.includes('.gif')) {
+          mimeType = 'image/gif';
+        }
+
+        // Share image using expo-sharing (most reliable for images on Android)
+        // The dialogTitle shows the message text in the share dialog
+        // Note: The text will be visible in the share dialog, and users can add it
+        // to their share in most Android apps (WhatsApp, Messages, etc.)
+        await Sharing.shareAsync(shareableImageUri, {
+          mimeType: mimeType,
+          dialogTitle: shareMessage, // This displays the text message
+        });
+      }
+
     } catch (error) {
       console.error('Error sharing:', error);
       
       // If sharing failed, provide fallback message
-      if (error.message && !error.message.includes('cancelled')) {
+      if (error.message && !error.message.includes('cancelled') && !error.message.includes('User cancelled')) {
         Alert.alert('Error', 'Failed to share image. Please try again.');
       }
     }
@@ -895,6 +1101,52 @@ function AppContent() {
     }
 
     if (showResults) {
+      // Get text info for composite image
+      const isDeepfakeDetected = analysisResult?.status === 'deepfake_detected';
+      const isAuthentic = analysisResult?.status === 'authentic';
+      const isUnknown = 
+        !analysisResult?.status ||
+        analysisResult?.status === 'empty' ||
+        analysisResult?.status === 'no_result' ||
+        analysisResult?.status === 'unknown' ||
+        analysisResult?.status === 'inconclusive' ||
+        analysisResult?.status === 'unverifiable' ||
+        analysisResult?.status === 'unverified';
+
+      let headline = 'Inconclusive';
+      let subheadline = 'Insufficient data for analysis';
+      let textColor = '#A0B4C8'; // Grey for inconclusive
+      
+      if (isDeepfakeDetected) {
+        const confidence = analysisResult?.confidence ?? analysisResult?.deepfakeScore ?? analysisResult?.score ?? null;
+        headline = 'Confirmed Fake / AI Generated';
+        textColor = '#FF3B30'; // Red
+        if (confidence != null) {
+          const pct = Math.round(Number(confidence));
+          if (!Number.isNaN(pct)) {
+            subheadline = `${pct}% confidence`;
+          }
+        } else {
+          subheadline = 'High confidence fake or AI';
+        }
+      } else if (isAuthentic) {
+        const confidence = analysisResult?.confidence ?? analysisResult?.score ?? null;
+        headline = 'Likely Real';
+        textColor = '#4CAF50'; // Green
+        if (confidence != null) {
+          const pct = Math.round(Number(confidence));
+          if (!Number.isNaN(pct)) {
+            subheadline = `${pct}% confidence`;
+          }
+        } else {
+          subheadline = 'High authenticity confidence';
+        }
+      } else if (isUnknown) {
+        headline = 'Inconclusive';
+        subheadline = 'Insufficient data for analysis';
+        textColor = '#A0B4C8'; // Grey
+      }
+
       return (
         <>
           <ResultsScreen
@@ -910,6 +1162,97 @@ function AppContent() {
             onSave={handleLabelNoteSave}
             onCancel={handleLabelNoteCancel}
           />
+          {/* Hidden composite view for image capture */}
+          {isCreatingComposite && selectedImageUri && (
+            <View
+              ref={compositeViewRef}
+              style={{
+                position: 'absolute',
+                left: -9999,
+                top: -9999,
+                width: Dimensions.get('window').width,
+                height: Dimensions.get('window').width, // Square for now, will adjust based on image
+                opacity: 0.01, // Nearly invisible but still renderable
+              }}
+              collapsable={false}
+            >
+              <Image
+                source={{ uri: selectedImageUri }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  resizeMode: 'cover',
+                }}
+              />
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.60)',
+                  padding: 20,
+                  paddingBottom: 50, // Increased bottom padding for more space below text
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    color: textColor,
+                    marginBottom: 8,
+                    textAlign: 'center',
+                    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                    textShadowOffset: { width: 0, height: 2 },
+                    textShadowRadius: 4,
+                  }}
+                >
+                  {headline}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    color: '#FFFFFF',
+                    textAlign: 'center',
+                    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 3,
+                    marginBottom: 10, // Add margin below percentage text
+                  }}
+                >
+                  {subheadline}
+                </Text>
+              </View>
+              {/* Logo and branding at bottom right corner */}
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 10,
+                  right: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 4,
+                }}
+              >
+                <CatfishLogo width={20} height={22} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#FFFFFF',
+                    marginLeft: 6,
+                    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 2,
+                  }}
+                >
+                  Scanned by Catfish Crasher
+                </Text>
+              </View>
+            </View>
+          )}
         </>
       );
     }
@@ -960,6 +1303,7 @@ function AppContent() {
     if (showHistoryScreen) {
       return (
         <HistoryScreen
+          key={historyRefreshKey} // Force remount when key changes (after saving new scan)
           onScanClick={handleScanClick}
           onAboutClick={handleAboutClick}
           onProfileClick={handleProfileClick}
@@ -980,6 +1324,7 @@ function AppContent() {
           onHowItWorks={() => setShowHowItWorks(true)}
           onWatchVideo={handleWatchVideo}
           onHomeClick={handleHomeClick}
+          isScanning={isScanning}
         />
       );
     }
@@ -1014,6 +1359,7 @@ function AppContent() {
           onHowItWorks={() => setShowHowItWorks(true)}
           onWatchVideo={handleWatchVideo}
           onHomeClick={handleHomeClick}
+          isScanning={isScanning}
         />
       );
     }
@@ -1039,13 +1385,27 @@ function AppContent() {
         </View>
         <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 30) - 5 }]}>
           <View style={{ width: '100%', maxWidth: 345, alignItems: 'center' }}>
-            <SignUpButton onPress={() => { setShowLandingScreen(false); handleSignUp(); }} style={{ marginBottom: 12, width: '100%' }} />
-            <SignInButton onPress={() => { setShowLandingScreen(false); handleSignIn(); }} style={{ marginBottom: 12, width: '100%' }} />
-            <ContinueAsGuestButton 
-              onPress={() => { setShowLandingScreen(false); handleContinueAsGuest(); }} 
-              isLoading={isCreatingGuest}
-              style={{ width: '100%' }} 
-            />
+            {isAuthenticated ? (
+              // If user is logged in, show "Continue to App" button
+              <ContinueToAppButton 
+                onPress={() => { 
+                  setShowLandingScreen(false); 
+                  setShowScanScreen(true); 
+                }} 
+                style={{ width: '100%' }} 
+              />
+            ) : (
+              // If user is NOT logged in, show sign up/sign in/guest options
+              <>
+                <SignUpButton onPress={() => { setShowLandingScreen(false); handleSignUp(); }} style={{ marginBottom: 12, width: '100%' }} />
+                <SignInButton onPress={() => { setShowLandingScreen(false); handleSignIn(); }} style={{ marginBottom: 12, width: '100%' }} />
+                <ContinueAsGuestButton 
+                  onPress={() => { setShowLandingScreen(false); handleContinueAsGuest(); }} 
+                  isLoading={isCreatingGuest}
+                  style={{ width: '100%' }} 
+                />
+              </>
+            )}
           </View>
         </View>
         <StatusBar style="light" />
@@ -1100,6 +1460,21 @@ export default function App() {
           secret: apiConfig.SINGULAR_SECRET,
         },
       });
+
+      // Copy sample images to gallery on first launch
+      try {
+        const result = await SampleImagesService.copySampleImagesToGallery();
+        if (result.success && result.copiedCount > 0) {
+          console.log(`✓ Copied ${result.copiedCount} sample images to gallery`);
+        } else if (result.skipped) {
+          console.log('Sample images already in gallery');
+        } else if (result.error) {
+          console.warn('Could not copy sample images:', result.error);
+        }
+      } catch (error) {
+        console.error('Error initializing sample images:', error);
+        // Don't block app launch if this fails
+      }
     };
     initializeServices();
   }, []);

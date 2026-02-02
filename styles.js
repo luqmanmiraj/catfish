@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   },
   taglineTextExp: {
     fontSize: 18,
-    color: colors.accent.yellow,
+    color: colors.accent.lightGreyBlue,
     textAlign: 'center',
     paddingLeft: 20,
     paddingRight: 20,
@@ -238,7 +238,7 @@ export const scanStyles = StyleSheet.create({
   },
   howItWorksVideo: {
     fontSize: 16,
-    color: colors.yellow,
+    color: colors.accent.lightGreyBlue,
     // textDecorationLine: 'underline',
     // fontWeight: 'bold',
     fontStyle: 'italic',

@@ -9,7 +9,7 @@ import { scanStyles } from '../styles';
 import colors from '../colors';
 import { useSubscription } from '../context/SubscriptionContext';
 
-const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onProfileClick, isAuthenticated, user, onHowItWorks, onWatchVideo, onHomeClick }) => {
+const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onProfileClick, isAuthenticated, user, onHowItWorks, onWatchVideo, onHomeClick, isScanning = false }) => {
   const insets = useSafeAreaInsets();
   const { scansRemaining } = useSubscription();
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
@@ -148,9 +148,13 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
 
         {/* Circular Scan Design */}
         <TouchableOpacity
-          style={scanStyles.scanCircleContainer}
+          style={[
+            scanStyles.scanCircleContainer,
+            isScanning && { opacity: 0.5 }
+          ]}
           onPress={onTapToScan}
           activeOpacity={0.9}
+          disabled={isScanning}
         >
           <View style={scanStyles.scanCircle}>
             {/* New Camera Icon with Outer Circles */}
@@ -231,9 +235,11 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
           </View>
         </TouchableOpacity>
 
-        <Text style={scanStyles.tapToScanText}>Tap to Scan an Image of a Potential Date</Text>
+        <Text style={scanStyles.tapToScanText}>
+          {isScanning ? 'Scanning in Progress...' : 'Tap to Scan an Image of a Potential Date'}
+        </Text>
         <Text style={scanStyles.descriptionText}>
-          Detect AI-generated images and protect against catfishing
+          {isScanning ? 'Please wait while we analyze your image' : 'Detect AI-generated images and protect against catfishing'}
         </Text>
       </View>
 
@@ -416,7 +422,7 @@ const welcomeModalStyles = StyleSheet.create({
   },
   freeScansText: {
     fontSize: 16,
-    color: colors.yellow,
+    color: colors.accent.lightGreyBlue,
     fontWeight: 'bold',
     textAlign: 'left',
   },

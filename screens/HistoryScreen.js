@@ -93,7 +93,14 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
       setError(null);
 
       console.log('🔄 Fetching scan history...');
+      console.log('📡 API call timestamp:', new Date().toISOString());
       const response = await getScanHistory(accessToken, 50);
+      console.log('📥 API response received:', {
+        success: response.success,
+        scanCount: response.scans?.length || 0,
+        hasMore: response.hasMore,
+        totalCount: response.count
+      });
       
       if (response.success && response.scans) {
         // Map API response to UI format
@@ -140,16 +147,34 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
     }
   };
 
+  // Fetch on mount and when auth changes
   useEffect(() => {
     // Log access and fetch history when screen is shown
     logHistoryAccess();
-    fetchScanHistory();
+    
+    // Always fetch history when component mounts or when auth changes
+    // This ensures we get the latest data when navigating to this screen
+    if (isAuthenticated && accessToken) {
+      console.log('🔄 HistoryScreen mounted/visible - fetching scan history');
+      console.log('📊 Current scanHistory length before fetch:', scanHistory.length);
+      fetchScanHistory();
+    }
     
     // Reset log flag when component unmounts (so it logs again on next mount)
     return () => {
       hasLoggedAccess.current = false;
+      console.log('🧹 HistoryScreen unmounting');
     };
   }, [isAuthenticated, accessToken]);
+
+  // Also fetch on mount (empty deps) to ensure fresh data when component remounts via key prop
+  useEffect(() => {
+    if (isAuthenticated && accessToken) {
+      console.log('🔄 HistoryScreen mount effect - forcing fresh fetch');
+      fetchScanHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps = run only on mount
 
   const onRefresh = () => {
     fetchScanHistory(true);

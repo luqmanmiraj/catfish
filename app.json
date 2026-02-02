@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,11 +14,20 @@
     },
     "ios": {
       "supportsTablet": true,
+      "buildNumber": "5",
       "infoPlist": {
         "NSCameraUsageDescription": "Access for camera to pass photo/video identification",
         "NSPhotoLibraryUsageDescription": "Access to save analyzed images to your photo library",
         "NSPhotoLibraryAddUsageDescription": "Access to save analyzed images to your photo library",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
+          }
+        ]
       },
       "bundleIdentifier": "com.anonymous.catfish"
     },
@@ -33,7 +42,15 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "READ_MEDIA_IMAGES"
+        "READ_MEDIA_IMAGES",
+        "android.permission.INTERNET",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "com.android.vending.BILLING"
       ]
     },
     "web": {
@@ -48,12 +65,19 @@
     },
     "plugins": [
       [
+        "@sentry/react-native",
+        {
+          "organization": "your-org",
+          "project": "catfish"
+        }
+      ],
+      [
         "react-native-fbsdk-next",
         {
           "appID": "2079417662833739",
           "displayName": "Catfish Crasher",
           "clientToken": null,
-          "scheme": "fb"
+          "scheme": "fb2079417662833739"
         }
       ],
       [
@@ -61,9 +85,13 @@
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to save analyzed images.",
           "savePhotosPermission": "Allow $(PRODUCT_NAME) to save images to your photo library.",
-          "isAccessMediaLocationEnabled": false
+          "isAccessMediaLocationEnabled": false,
+          "androidPermissions": [
+            "READ_MEDIA_IMAGES"
+          ]
         }
       ]
-    ]
+    ],
+    "owner": "luqmanmiraj42"
   }
 }
