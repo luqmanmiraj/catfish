@@ -32,7 +32,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import CameraScanScreen from './screens/CameraScanScreen';
 import AnalysisScreen from './screens/AnalysisScreen';
 import ResultsScreen from './screens/ResultsScreen';
-import PaywallScreen from './components/PaywallScreen';
+import RevenueCatPaywallScreen from './components/RevenueCatPaywallScreen';
 import LabelNoteModal from './components/LabelNoteModal';
 import { getScanHistory, updateScanHistory, createScanHistory } from './services/subscriptionApi';
 import * as Analytics from './services/analyticsService';
@@ -1417,7 +1417,7 @@ function AppContent() {
     <>
       {renderContent()}
       {showPaywall && (
-        <PaywallScreen
+        <RevenueCatPaywallScreen
           onClose={handlePaywallClose}
           onPurchaseSuccess={handlePaywallPurchaseSuccess}
           onRestore={async () => {

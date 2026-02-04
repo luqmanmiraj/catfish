@@ -21,7 +21,8 @@ const DEBUG_OFFERINGS_EMAIL = 'qr8edai@gmail.com';
 
 /**
  * PaywallScreen Component
- * Displays token pack options (5, 20, 50 scans) with RevenueCat Paywall UI option
+ * When RevenueCat has offerings, shows RevenueCat dynamic paywall first (dashboard-controlled).
+ * Falls back to custom token pack UI (15, 50, 100 scans) when in Expo Go or offerings are empty.
  */
 export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore }) {
   const { user } = useAuth();
@@ -55,6 +56,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
   }, []);
 
   const loadPackages = async () => {
+    let tryRevenueCatPaywallFirst = false; // scope for finally
     try {
       setLoading(true);
       const [allPackages, byType] = await Promise.all([
@@ -63,14 +65,14 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       ]);
 
       setPackages(allPackages);
-      
+
       // Map packages to token pack types
       const tokenPackages = {
         pack_15: null,
         pack_50: null,
         pack_100: null,
       };
-      
+
       allPackages.forEach(pkg => {
         const identifier = (pkg.identifier || pkg.storeProduct?.identifier || '').toLowerCase();
         if (identifier.includes('pack_15') || identifier.includes('15') || identifier.includes('fifteen')) {
@@ -81,11 +83,10 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
           tokenPackages.pack_100 = pkg;
         }
       });
-      
+
       setPackagesByType(tokenPackages);
 
       // Auto-select pack_50 if available (best value), otherwise pack_15, then pack_100
-      // If no packages from RevenueCat, use fallback selection
       if (tokenPackages.pack_50) {
         setSelectedPackage(tokenPackages.pack_50);
       } else if (tokenPackages.pack_15) {
@@ -95,14 +96,38 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       } else if (allPackages.length > 0) {
         setSelectedPackage(allPackages[0]);
       } else {
-        // Fallback: select the 50 scans pack (best value) when RevenueCat packages aren't available
         setSelectedPackage('fallback_50');
+      }
+
+      // When RevenueCat has offerings, show RevenueCat dynamic paywall first (dashboard-controlled)
+      tryRevenueCatPaywallFirst =
+        allPackages.length > 0 && RevenueCatService.isRevenueCatConfigured();
+
+      if (tryRevenueCatPaywallFirst) {
+        (async () => {
+          try {
+            const result = await RevenueCatService.presentPaywall();
+            if (result) {
+              onPurchaseSuccess?.();
+              onClose?.();
+              return;
+            }
+          } catch (e) {
+            if (e?.code !== 'USER_CANCELLED' && !String(e?.message || '').toLowerCase().includes('cancelled')) {
+              console.warn('RevenueCat paywall:', e?.message || e);
+            }
+          }
+          setLoading(false);
+        })();
+        return;
       }
     } catch (error) {
       console.error('Error loading packages:', error);
       Alert.alert('Error', 'Failed to load subscription options. Please try again.');
     } finally {
-      setLoading(false);
+      if (!tryRevenueCatPaywallFirst) {
+        setLoading(false);
+      }
     }
   };
 
