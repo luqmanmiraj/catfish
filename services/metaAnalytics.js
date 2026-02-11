@@ -32,6 +32,7 @@ let metaPixelId = null;
  * @param {Object} config - Configuration object
  * @param {string} config.appId - Facebook App ID
  * @param {string} config.pixelId - Meta Pixel ID (optional, for CAPI)
+ * @param {string} config.trackingConsent - ATT consent status ('granted' or 'denied')
  */
 export async function initialize(config = {}) {
   try {
@@ -58,9 +59,12 @@ export async function initialize(config = {}) {
     // Set app ID for Meta SDK
     Settings.setAppID(metaAppId);
     
-    // Enable auto-logging of app events (optional)
+    // Set advertiser tracking based on actual ATT (App Tracking Transparency) consent
+    // On iOS 14.5+, this must reflect the user's ATT choice for IDFA access
     if (typeof Settings.setAdvertiserTrackingEnabled === 'function') {
-      Settings.setAdvertiserTrackingEnabled(true);
+      const isTrackingGranted = config.trackingConsent === 'granted';
+      Settings.setAdvertiserTrackingEnabled(isTrackingGranted);
+      console.log(`Meta advertiser tracking set to: ${isTrackingGranted} (ATT consent: ${config.trackingConsent || 'not provided'})`);
     }
 
     isInitialized = true;

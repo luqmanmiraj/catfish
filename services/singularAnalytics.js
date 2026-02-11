@@ -5,21 +5,10 @@
 
 import Constants from 'expo-constants';
 
-// Conditionally import Singular SDK - only available in development builds, not in Expo Go
+// Singular SDK has been removed from dependencies (native Android SDK version was unavailable).
+// All exported functions below are safe no-ops so callers don't need to change.
 let Singular = null;
 let SingularConfig = null;
-try {
-  const isExpoGo = Constants.appOwnership === 'expo';
-  if (!isExpoGo) {
-    const SingularSDK = require('singular-react-native');
-    Singular = SingularSDK.Singular;
-    SingularConfig = SingularSDK.SingularConfig;
-  } else {
-    console.log('Running in Expo Go - Singular SDK not available');
-  }
-} catch (error) {
-  console.log('Singular SDK module not available:', error.message);
-}
 
 let isInitialized = false;
 let currentUserId = null;

@@ -8,6 +8,7 @@ import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 import * as RevenueCatService from './services/revenueCatService';
@@ -1449,11 +1450,29 @@ export default function App() {
       // Track app opened event
       PostHogService.trackAppOpened();
 
+      // Request ATT (App Tracking Transparency) permission on iOS before initializing Meta SDK
+      // This must happen before Meta SDK init so advertiser tracking reflects actual user consent
+      let trackingConsent = 'denied';
+      if (Platform.OS === 'ios') {
+        try {
+          const { status } = await requestTrackingPermissionsAsync();
+          trackingConsent = status;
+          console.log('ATT tracking permission status:', status);
+        } catch (attError) {
+          console.warn('Error requesting ATT permission:', attError);
+          // Continue with tracking disabled if ATT prompt fails
+        }
+      } else {
+        // Android does not have ATT; treat as granted for Meta SDK purposes
+        trackingConsent = 'granted';
+      }
+
       // Initialize analytics (marketing analytics)
       await Analytics.initializeAnalytics({
         meta: {
           appId: apiConfig.META_APP_ID,
           pixelId: apiConfig.META_PIXEL_ID,
+          trackingConsent,
         },
         singular: {
           apiKey: apiConfig.SINGULAR_API_KEY,

@@ -3,12 +3,16 @@
  * Provides a unified interface for tracking events across multiple analytics platforms
  */
 
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import * as MetaAnalytics from './metaAnalytics';
 import * as SingularAnalytics from './singularAnalytics';
 import apiConfig from '../config/apiConfig';
 
 let isInitialized = false;
 let capiEndpoint = null;
+let advertiserTrackingEnabled = 0; // ATT consent: 1 = granted, 0 = denied
+let deviceInfo = {}; // Device info for CAPI app_data.extinfo
 
 /**
  * Initialize all analytics services
@@ -25,6 +29,20 @@ export async function initializeAnalytics(config = {}) {
     if (config.singular) {
       await SingularAnalytics.initialize(config.singular);
     }
+
+    // Store ATT consent status for CAPI events
+    if (config.meta?.trackingConsent === 'granted') {
+      advertiserTrackingEnabled = 1;
+    } else {
+      advertiserTrackingEnabled = 0;
+    }
+
+    // Collect device info for CAPI app_data.extinfo
+    deviceInfo = {
+      app_platform: Platform.OS, // 'ios' or 'android'
+      app_version: Constants.expoConfig?.version || Constants.manifest?.version || '1.0.0',
+      os_version: Platform.Version ? String(Platform.Version) : '',
+    };
 
     // Set up CAPI endpoint if Meta Pixel ID is configured
     if (apiConfig.META_PIXEL_ID) {
@@ -58,7 +76,11 @@ async function sendToCAPI(eventName, eventParams = {}, eventId = null) {
       },
       body: JSON.stringify({
         eventName,
-        eventParams,
+        eventParams: {
+          ...eventParams,
+          advertiser_tracking_enabled: advertiserTrackingEnabled,
+          ...deviceInfo,
+        },
         eventId: eventId || `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
       }),
     });
@@ -71,6 +93,11 @@ async function sendToCAPI(eventName, eventParams = {}, eventId = null) {
     // Don't throw - CAPI failures shouldn't break the app
   }
 }
+
+// Conversion events that should only be sent via CAPI (server-side) to avoid
+// double-counting, since Meta SDK's AppEventsLogger.logEvent() does not support
+// the event_id field needed for client+server deduplication.
+const CAPI_ONLY_EVENTS = ['PurchaseCompleted', 'TrialCompleted'];
 
 /**
  * Track an event across all configured analytics platforms
@@ -86,14 +113,20 @@ export async function trackEvent(eventName, eventParams = {}) {
   // Generate event ID for deduplication (shared between SDK and CAPI)
   const eventId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${Math.random().toString(36).substring(2, 15)}`;
 
-  try {
-    // Track in Meta SDK (client-side)
-    await MetaAnalytics.trackEvent(eventName, { ...eventParams, _eventId: eventId });
+  const isCapiOnly = CAPI_ONLY_EVENTS.includes(eventName);
 
-    // Send to CAPI (server-side) for better data quality
+  try {
+    // For conversion events, skip the Meta client-side SDK to avoid double-counting.
+    // CAPI is the primary source of truth for these events.
+    if (!isCapiOnly) {
+      // Track in Meta SDK (client-side) for non-conversion events
+      await MetaAnalytics.trackEvent(eventName, { ...eventParams, _eventId: eventId });
+    }
+
+    // Send to CAPI (server-side) for better data quality — always fires
     await sendToCAPI(eventName, eventParams, eventId);
 
-    // Track in Singular
+    // Track in Singular — always fires (Singular has its own deduplication)
     await SingularAnalytics.trackEvent(eventName, eventParams);
   } catch (error) {
     console.error(`Error tracking event ${eventName}:`, error);

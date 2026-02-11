@@ -3,7 +3,7 @@
     "name": "catfish",
     "slug": "catfish",
     "scheme": "com.anonymous.catfish",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "5",
+      "buildNumber": "7",
       "infoPlist": {
         "NSCameraUsageDescription": "Access for camera to pass photo/video identification",
         "NSPhotoLibraryUsageDescription": "Access to save analyzed images to your photo library",
@@ -77,8 +77,14 @@
         {
           "appID": "2079417662833739",
           "displayName": "Catfish Crasher",
-          "clientToken": null,
+          "clientToken": "f83ef3382496da79288b6fe37370a317",
           "scheme": "fb2079417662833739"
+        }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "This identifier will be used to deliver personalized ads to you."
         }
       ],
       [
