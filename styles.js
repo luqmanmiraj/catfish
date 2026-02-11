@@ -1593,7 +1593,7 @@ export const signUpStyles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   header: {
     marginBottom: 40,

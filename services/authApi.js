@@ -44,7 +44,7 @@ async function apiRequest(endpoint, options = {}) {
 
     return data;
   } catch (error) {
-    console.error(`API request failed: ${endpoint}`, error);
+    console.warn(`API request failed: ${endpoint}`, error.message || error);
     throw error;
   }
 }

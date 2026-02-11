@@ -310,7 +310,7 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
 
           <View style={welcomeModalStyles.content}>
             <Text style={welcomeModalStyles.welcomeText}>
-              We're excited to have you here! Get started with 3 free scans on signup.
+              We're excited to have you here! Get started with 5 free scans on signup.
             </Text>
 
             <View style={welcomeModalStyles.featureSection}>
@@ -332,7 +332,7 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
             <View style={welcomeModalStyles.pricingSection}>
               <Text style={welcomeModalStyles.sectionTitle}>Pricing:</Text>
               <View style={welcomeModalStyles.freeScansContainer}>
-                <Text style={welcomeModalStyles.freeScansText}>3 free scans — On signup</Text>
+                <Text style={welcomeModalStyles.freeScansText}>5 free scans — On signup</Text>
               </View>
               <Text style={welcomeModalStyles.pricingText}>15 scans — $4.99</Text>
               <Text style={welcomeModalStyles.pricingText}>50 scans — $9.99</Text>

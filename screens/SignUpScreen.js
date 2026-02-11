@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
+import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { signUpStyles } from '../styles';
+import PasswordInput from '../components/PasswordInput';
 
 const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onViewPrivacy }) => {
   const [email, setEmail] = useState('');
@@ -24,6 +26,13 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
   const [isAgeConfirmed, setIsAgeConfirmed] = useState(false);
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
   const { signUp, resendConfirmationCode } = useAuth();
+  const scrollViewRef = useRef(null);
+
+  const scrollToEnd = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 300);
+  };
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -62,11 +71,11 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
         }
       } else {
         // Failed to resend code - show error
-        Alert.alert('Error', resendResult.error || 'Failed to resend verification code. Please try again.');
+        Alert.alert('Error', getFriendlyErrorMessage(resendResult.error, 'auth'));
       }
     } catch (resendError) {
       // Error resending code - show error
-      Alert.alert('Error', resendError.message || 'Failed to resend verification code. Please try again.');
+      Alert.alert('Error', getFriendlyErrorMessage(resendError, 'auth'));
     }
   };
 
@@ -134,7 +143,7 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
           await handleAccountExists(email);
         } else {
           // Other signup errors
-          Alert.alert('Sign Up Failed', errorMessage || 'Please try again');
+          Alert.alert('Sign Up Failed', getFriendlyErrorMessage(errorMessage, 'auth'));
         }
       }
     } catch (error) {
@@ -145,7 +154,7 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
         await handleAccountExists(email);
       } else {
         // Other errors
-        Alert.alert('Error', errorMessage || 'An unexpected error occurred');
+        Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
       }
     } finally {
       setIsLoading(false);
@@ -156,11 +165,14 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
     <KeyboardAvoidingView
       style={signUpStyles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <StatusBar style="light" />
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={signUpStyles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={signUpStyles.header}>
@@ -207,19 +219,16 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
 
           <View style={signUpStyles.inputContainer}>
             <Text style={signUpStyles.label}>Password</Text>
-            <TextInput
-              style={signUpStyles.input}
+            <PasswordInput
               placeholder="Create a password"
               placeholderTextColor={colors.text.secondary}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
               autoComplete="password-new"
               textContentType="newPassword"
               passwordRules="required: upper; required: lower; required: digit; max-consecutive: 2; minlength: 8;"
               editable={!isLoading}
+              onFocus={scrollToEnd}
             />
             <Text style={signUpStyles.helperText}>
               Must be 8+ characters with uppercase, lowercase, and numbers
@@ -228,18 +237,15 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
 
           <View style={signUpStyles.inputContainer}>
             <Text style={signUpStyles.label}>Confirm Password</Text>
-            <TextInput
-              style={signUpStyles.input}
+            <PasswordInput
               placeholder="Confirm your password"
               placeholderTextColor={colors.text.secondary}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
               autoComplete="password-new"
               textContentType="newPassword"
               editable={!isLoading}
+              onFocus={scrollToEnd}
             />
           </View>
 

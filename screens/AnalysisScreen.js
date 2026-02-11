@@ -6,6 +6,7 @@ import { analysisStyles } from '../styles';
 import colors from '../colors';
 import apiConfig from '../config/apiConfig';
 import { logDeviceMetadata } from '../utils/deviceLogger';
+import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import { useAuth } from '../context/AuthContext';
 
 const AnalysisScreen = ({ imageUri, onComplete }) => {
@@ -192,10 +193,8 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
           return;
         }
         setStatusMessage('Analysis failed. Please try again.');
-        Alert.alert(
-          'Analysis Error', 
-          error.message || 'Unable to analyze image. Please try again.'
-        );
+        const friendlyMessage = getFriendlyErrorMessage(error, 'analysis');
+        Alert.alert('Analysis Error', friendlyMessage);
 
         // Still complete the progress so user can go back / retry
         Animated.timing(progressAnim, {

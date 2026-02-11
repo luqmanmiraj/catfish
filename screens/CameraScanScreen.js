@@ -4,6 +4,7 @@ import { View, TouchableOpacity, Text, Alert, ScrollView, Animated } from 'react
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
 import { cameraScanStyles } from '../styles';
+import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useAuth } from '../context/AuthContext';
@@ -49,7 +50,7 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
       }
     } catch (error) {
       console.error('Error opening camera:', error);
-      Alert.alert('Error', 'Failed to open camera');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
     }
   };
 
@@ -82,7 +83,7 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
       }
     } catch (error) {
       console.error('Error opening gallery:', error);
-      Alert.alert('Error', 'Failed to open gallery');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
     }
   };
 

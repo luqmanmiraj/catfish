@@ -41,6 +41,7 @@ import * as SentryService from './services/sentryService';
 import * as PostHogService from './services/posthogService';
 import * as SampleImagesService from './services/sampleImagesService';
 import apiConfig from './config/apiConfig';
+import { getFriendlyErrorMessage } from './utils/errorMessages';
 import styles from './styles';
 import colors from './colors';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -239,7 +240,7 @@ function AppContent() {
       console.error('Error in guest signup flow:', error);
       Alert.alert(
         'Error',
-        'An error occurred while creating your guest account. Please try again.',
+        getFriendlyErrorMessage(error, 'auth'),
         [{ text: 'OK' }]
       );
     } finally {
@@ -312,7 +313,7 @@ function AppContent() {
       }
     } catch (error) {
       console.error('Error saving scan history:', error);
-      Alert.alert('Error', 'Failed to save scan. Please try again.');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'history'));
     }
   };
 
@@ -669,7 +670,7 @@ function AppContent() {
       
       // If sharing failed, provide fallback message
       if (error.message && !error.message.includes('cancelled') && !error.message.includes('User cancelled')) {
-        Alert.alert('Error', 'Failed to share image. Please try again.');
+        Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
       }
     }
   };
@@ -902,7 +903,7 @@ function AppContent() {
       Alert.alert('Success', 'PDF report saved to your device!');
     } catch (error) {
       console.error('Error saving PDF:', error);
-      Alert.alert('Error', 'Failed to save PDF. Please try again.');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
     }
   };
 
@@ -928,7 +929,7 @@ function AppContent() {
       await refreshSubscriptionStatus();
     } catch (error) {
       console.error('Error presenting customer center:', error);
-      Alert.alert('Error', 'Unable to open subscription management. Please try again.');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'purchase'));
     }
   };
 
@@ -967,7 +968,7 @@ function AppContent() {
       }
     } catch (error) {
       console.error('Error opening video:', error);
-      Alert.alert('Error', 'Failed to open video');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
     }
   };
 

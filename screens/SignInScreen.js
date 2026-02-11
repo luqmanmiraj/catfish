@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
 import colors from '../colors';
 import { signInStyles } from '../styles';
+import PasswordInput from '../components/PasswordInput';
 
 const SignInScreen = ({ onSignUp, onForgotPassword, onClose, onSignInSuccess }) => {
   const [email, setEmail] = useState('');
@@ -41,10 +42,25 @@ const SignInScreen = ({ onSignUp, onForgotPassword, onClose, onSignInSuccess }) 
           onClose();
         }
       } else {
-        Alert.alert('Sign In Failed', result.error || 'Please check your credentials and try again');
+        const errorMsg = result.error || '';
+        // Show user-friendly message for common auth errors
+        if (errorMsg.toLowerCase().includes('incorrect') || errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('not authorized')) {
+          Alert.alert('Sign In Failed', 'Incorrect email or password. Please try again.');
+        } else if (errorMsg.toLowerCase().includes('user does not exist') || errorMsg.toLowerCase().includes('not found')) {
+          Alert.alert('Sign In Failed', 'No account found with this email. Please sign up first.');
+        } else {
+          Alert.alert('Sign In Failed', errorMsg || 'Please check your credentials and try again.');
+        }
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      const errorMsg = error.message || '';
+      if (errorMsg.toLowerCase().includes('incorrect') || errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('not authorized')) {
+        Alert.alert('Sign In Failed', 'Incorrect email or password. Please try again.');
+      } else if (errorMsg.toLowerCase().includes('network') || errorMsg.toLowerCase().includes('fetch')) {
+        Alert.alert('Connection Error', 'Please check your internet connection and try again.');
+      } else {
+        Alert.alert('Sign In Failed', 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -92,15 +108,11 @@ const SignInScreen = ({ onSignUp, onForgotPassword, onClose, onSignInSuccess }) 
 
           <View style={signInStyles.inputContainer}>
             <Text style={signInStyles.label}>Password</Text>
-            <TextInput
-              style={signInStyles.input}
+            <PasswordInput
               placeholder="Enter your password"
               placeholderTextColor={colors.text.secondary}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
               autoComplete="password"
               textContentType="password"
               passwordRules="required: upper; required: lower; required: digit; max-consecutive: 2; minlength: 8;"

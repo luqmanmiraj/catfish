@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
+import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { verificationStyles } from '../styles';
 
@@ -84,10 +85,10 @@ const VerificationScreen = ({ email, onVerified, onClose, onResendCode }) => {
           },
         ]);
       } else {
-        Alert.alert('Verification Failed', result.error || 'Invalid verification code. Please try again.');
+        Alert.alert('Verification Failed', getFriendlyErrorMessage(result.error, 'auth'));
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
     } finally {
       setIsLoading(false);
     }
@@ -103,10 +104,10 @@ const VerificationScreen = ({ email, onVerified, onClose, onResendCode }) => {
         setCode(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else {
-        Alert.alert('Error', result.error || 'Failed to resend code. Please try again.');
+        Alert.alert('Error', getFriendlyErrorMessage(result.error, 'auth'));
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
     } finally {
       setIsResending(false);
     }

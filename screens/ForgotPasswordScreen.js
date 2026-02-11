@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
+import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { forgotPasswordStyles } from '../styles';
 
@@ -43,10 +44,10 @@ const ForgotPasswordScreen = ({ onBack, onCodeSent }) => {
           onCodeSent(email.trim());
         }
       } else {
-        Alert.alert('Error', result.error || 'Failed to send password reset code. Please try again.');
+        Alert.alert('Error', getFriendlyErrorMessage(result.error, 'auth'));
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
     } finally {
       setIsLoading(false);
     }

@@ -15,6 +15,7 @@ import Svg, { Circle, Path, G } from 'react-native-svg';
 import * as RevenueCatService from '../services/revenueCatService';
 import * as Analytics from '../services/analyticsService';
 import { useAuth } from '../context/AuthContext';
+import { getFriendlyErrorMessage, isUserCancelledError } from '../utils/errorMessages';
 import colors from '../colors';
 
 const DEBUG_OFFERINGS_EMAIL = 'qr8edai@gmail.com';
@@ -123,7 +124,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       }
     } catch (error) {
       console.error('Error loading packages:', error);
-      Alert.alert('Error', 'Failed to load subscription options. Please try again.');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'purchase'));
     } finally {
       if (!tryRevenueCatPaywallFirst) {
         setLoading(false);
@@ -166,10 +167,9 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       ]);
     } catch (error) {
       console.error('Purchase error:', error);
-      if (error.userCancelled) return;
-      let errorMessage = 'Unable to complete purchase. Please try again.';
-      if (error.message) errorMessage = error.message;
-      Alert.alert('Purchase Failed', errorMessage);
+      if (isUserCancelledError(error)) return;
+      const friendlyMessage = getFriendlyErrorMessage(error, 'purchase');
+      if (friendlyMessage) Alert.alert('Purchase Failed', friendlyMessage);
     } finally {
       setPurchasing(false);
     }
@@ -274,8 +274,8 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       }
     } catch (error) {
       console.error('Paywall error:', error);
-      if (!error.message?.includes('cancelled')) {
-        Alert.alert('Error', 'Unable to show subscription options. Please try again.');
+      if (!isUserCancelledError(error)) {
+        Alert.alert('Error', getFriendlyErrorMessage(error, 'purchase'));
       }
     } finally {
       setPurchasing(false);
@@ -304,7 +304,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       }
     } catch (error) {
       console.error('Restore error:', error);
-      Alert.alert('Error', 'Unable to restore purchases. Please try again.');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'purchase'));
     } finally {
       setPurchasing(false);
     }

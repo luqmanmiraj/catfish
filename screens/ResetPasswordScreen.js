@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
+import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { resetPasswordStyles } from '../styles';
+import PasswordInput from '../components/PasswordInput';
 
 const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
@@ -120,10 +122,10 @@ const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
           },
         ]);
       } else {
-        Alert.alert('Reset Failed', result.error || 'Failed to reset password. Please try again.');
+        Alert.alert('Reset Failed', getFriendlyErrorMessage(result.error, 'auth'));
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
     } finally {
       setIsLoading(false);
     }
@@ -139,10 +141,10 @@ const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
         setCode(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else {
-        Alert.alert('Error', result.error || 'Failed to resend code. Please try again.');
+        Alert.alert('Error', getFriendlyErrorMessage(result.error, 'auth'));
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
     } finally {
       setIsResending(false);
     }
@@ -199,16 +201,11 @@ const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
           {/* Password Inputs */}
           <View style={resetPasswordStyles.inputContainer}>
             <Text style={resetPasswordStyles.label}>New Password</Text>
-            <TextInput
-              ref={passwordInputRef}
-              style={resetPasswordStyles.input}
+            <PasswordInput
               placeholder="Enter new password"
               placeholderTextColor={colors.text.secondary}
               value={newPassword}
               onChangeText={setNewPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
               autoComplete="password-new"
               textContentType="newPassword"
               passwordRules="required: upper; required: lower; required: digit; max-consecutive: 2; minlength: 8;"
@@ -221,15 +218,11 @@ const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
 
           <View style={resetPasswordStyles.inputContainer}>
             <Text style={resetPasswordStyles.label}>Confirm Password</Text>
-            <TextInput
-              style={resetPasswordStyles.input}
+            <PasswordInput
               placeholder="Confirm new password"
               placeholderTextColor={colors.text.secondary}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
               autoComplete="password-new"
               textContentType="newPassword"
               editable={!isLoading}

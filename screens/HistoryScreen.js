@@ -8,6 +8,7 @@ import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
 import { getScanHistory, updateScanHistory } from '../services/subscriptionApi';
 import { logDeviceMetadata } from '../utils/deviceLogger';
+import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import apiConfig from '../config/apiConfig';
 import LabelNoteModal from '../components/LabelNoteModal';
 import { Alert } from 'react-native';
@@ -139,7 +140,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
       }
     } catch (err) {
       console.error('❌ Error fetching scan history:', err);
-      setError(err.message || 'Failed to load scan history');
+      setError(getFriendlyErrorMessage(err, 'history'));
       setScanHistory([]);
     } finally {
       setLoading(false);
@@ -202,7 +203,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
       await fetchScanHistory();
     } catch (error) {
       console.error('Error updating scan history:', error);
-      Alert.alert('Error', 'Failed to update scan. Please try again.');
+      Alert.alert('Error', getFriendlyErrorMessage(error, 'history'));
     }
   };
 

@@ -40,18 +40,19 @@ export async function getSubscriptionStatus(accessToken) {
     return data;
   } catch (error) {
     console.error('Error fetching subscription status:', error);
-    console.error('⚠️ API call failed - returning fallback guest status (this may hide actual DB values!)');
-    // Return guest user status instead of throwing
+    console.error('⚠️ API call failed - returning fallback status with 0 scans (actual DB values may differ)');
+    // Return fallback status with 0 scans - don't show fake scans on error
     return {
-      success: true,
+      success: false,
       subscription: {
         tier: 'free',
         status: 'active',
         isPro: false,
       },
+      tokenBalance: 0,
       scanCount: 0,
-      scanLimit: 3,
-      scansRemaining: 3,
+      scanLimit: 0,
+      scansRemaining: 0,
     };
   }
 }
