@@ -16,6 +16,11 @@ export function SubscriptionProvider({ children }) {
   const [tokenBalance, setTokenBalance] = useState(0);
   const [scansRemaining, setScansRemaining] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  // Device-level scan tracking
+  const [deviceFreeScansUsed, setDeviceFreeScansUsed] = useState(0);
+  const [deviceFreeScansLimit, setDeviceFreeScansLimit] = useState(5);
+  const [deviceLimitReached, setDeviceLimitReached] = useState(false);
+  const [hasPurchased, setHasPurchased] = useState(false);
   // Legacy fields for backward compatibility
   const [scanCount, setScanCount] = useState(0);
   const [scanLimit, setScanLimit] = useState(Infinity);
@@ -73,7 +78,34 @@ export function SubscriptionProvider({ children }) {
           console.log('  - User:', user?.sub || user?.email || user?.['cognito:username']);
           
           setTokenBalance(balance);
-          setScansRemaining(balance);
+          
+          // Update device-level scan tracking fields
+          if (backendStatus.deviceFreeScansUsed !== undefined) {
+            setDeviceFreeScansUsed(backendStatus.deviceFreeScansUsed);
+          }
+          if (backendStatus.deviceFreeScansLimit !== undefined) {
+            setDeviceFreeScansLimit(backendStatus.deviceFreeScansLimit);
+          }
+          if (backendStatus.deviceLimitReached !== undefined) {
+            setDeviceLimitReached(backendStatus.deviceLimitReached);
+          }
+          if (backendStatus.hasPurchased !== undefined) {
+            setHasPurchased(backendStatus.hasPurchased);
+          }
+          
+          // If device has exhausted free scans and user hasn't purchased,
+          // show 0 scans remaining (even if token balance > 0, they can't use them)
+          const deviceBlocked = backendStatus.deviceLimitReached && !backendStatus.hasPurchased;
+          const effectiveScans = deviceBlocked ? 0 : balance;
+          setScansRemaining(effectiveScans);
+          
+          console.log('📱 Device scan tracking:');
+          console.log('  - deviceFreeScansUsed:', backendStatus.deviceFreeScansUsed);
+          console.log('  - deviceFreeScansLimit:', backendStatus.deviceFreeScansLimit);
+          console.log('  - deviceLimitReached:', backendStatus.deviceLimitReached);
+          console.log('  - hasPurchased:', backendStatus.hasPurchased);
+          console.log('  - deviceBlocked:', deviceBlocked);
+          console.log('  - effectiveScans:', effectiveScans);
           
           // Legacy fields for backward compatibility
           setScanCount(0);
@@ -116,10 +148,12 @@ export function SubscriptionProvider({ children }) {
    */
   const checkCanScan = async () => {
     // Use local state - scansRemaining is already maintained from /subscription/status
+    // scansRemaining is already adjusted to 0 if device limit is reached
     return {
       canScan: scansRemaining > 0,
       scansRemaining: scansRemaining,
       tokenBalance: tokenBalance,
+      deviceLimitReached: deviceLimitReached,
     };
   };
 
@@ -357,6 +391,10 @@ export function SubscriptionProvider({ children }) {
       // Reset to defaults when logged out
       setTokenBalance(0);
       setScansRemaining(0);
+      setDeviceFreeScansUsed(0);
+      setDeviceFreeScansLimit(5);
+      setDeviceLimitReached(false);
+      setHasPurchased(false);
       setScanCount(0);
       setScanLimit(Infinity);
       setIsPro(false);
@@ -369,6 +407,11 @@ export function SubscriptionProvider({ children }) {
     tokenBalance,
     scansRemaining,
     isLoading,
+    // Device-level scan tracking
+    deviceFreeScansUsed,
+    deviceFreeScansLimit,
+    deviceLimitReached,
+    hasPurchased,
     // Legacy fields for backward compatibility
     scanCount,
     scanLimit,

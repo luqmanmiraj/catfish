@@ -132,7 +132,9 @@ export function AuthProvider({ children }) {
    */
   const confirmSignUp = async (email, confirmationCode) => {
     try {
-      const result = await authApi.confirmSignUp(email, confirmationCode);
+      // Include device ID so backend can check device-level free scan limits
+      const deviceId = await getDeviceId();
+      const result = await authApi.confirmSignUp(email, confirmationCode, deviceId);
       
       // Track app initialization event after successful account creation
       if (result.success) {
@@ -275,6 +277,37 @@ export function AuthProvider({ children }) {
   };
 
   /**
+   * Delete user account - removes from backend then signs out locally
+   */
+  const deleteAccount = async () => {
+    try {
+      const token = accessToken || await authStorage.getAccessToken();
+      if (!token) {
+        throw new Error('No access token available');
+      }
+
+      // Delete account on the server (Cognito + DynamoDB)
+      const result = await authApi.deleteAccount(token);
+
+      if (result.success) {
+        // Clear local auth state (same as signOut)
+        try { await Analytics.clearUserId(); } catch (e) {}
+        try { SentryService.clearUser(); } catch (e) {}
+        try { PostHogService.reset(); } catch (e) {}
+
+        await authStorage.clearAuthData();
+        setUser(null);
+        setAccessToken(null);
+        setIsAuthenticated(false);
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  /**
    * Forgot password
    */
   const forgotPassword = async (email) => {
@@ -378,7 +411,12 @@ export function AuthProvider({ children }) {
           console.error('Error tracking app initialization event:', error);
         }
         
-        return { success: true, data: result, isGuest: true };
+        return { 
+          success: true, 
+          data: result, 
+          isGuest: true,
+          deviceLimitReached: result.deviceLimitReached || false,
+        };
       } else {
         return { success: false, error: result.message || 'Guest signup failed' };
       }
@@ -397,6 +435,7 @@ export function AuthProvider({ children }) {
     resendConfirmationCode,
     signIn,
     signOut,
+    deleteAccount,
     forgotPassword,
     confirmForgotPassword,
     refreshAccessToken,

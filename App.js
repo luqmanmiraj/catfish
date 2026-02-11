@@ -48,7 +48,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 function AppContent() {
   const insets = useSafeAreaInsets();
-  const { isAuthenticated, isLoading, signOut, user, guestSignUp, accessToken } = useAuth();
+  const { isAuthenticated, isLoading, signOut, deleteAccount, user, guestSignUp, accessToken } = useAuth();
   const { 
     purchaseSubscription, 
     purchaseTokenPack,
@@ -214,6 +214,15 @@ function AppContent() {
         return;
       }
       
+      // Notify user if this device has exhausted its free scans
+      if (guestResult.deviceLimitReached) {
+        Alert.alert(
+          'Free Scans Used',
+          'This device has already used all free scans. Please purchase a scan pack to continue scanning.',
+          [{ text: 'OK' }]
+        );
+      }
+      
       console.log('Guest user created successfully');
       
       // Request camera permissions - this will show the native iOS popup
@@ -350,9 +359,16 @@ function AppContent() {
         try {
           const canScanResult = await checkCanScan();
           if (!canScanResult.canScan || canScanResult.scansRemaining <= 0) {
+            // Show device-specific message if device limit is the reason
+            const title = canScanResult.deviceLimitReached 
+              ? 'Device Scan Limit Reached' 
+              : 'No Scans Remaining';
+            const message = canScanResult.deviceLimitReached
+              ? 'This device has used all its free scans. Purchase a scan pack to continue scanning.'
+              : 'You have no scans left. Please purchase a scan pack to continue.';
             Alert.alert(
-              'No Scans Remaining',
-              'You have no scans left. Please purchase a scan pack to continue.',
+              title,
+              message,
               [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Purchase Scans', onPress: () => setShowPaywall(true) },
@@ -1017,10 +1033,26 @@ function AppContent() {
   };
 
   const handleDeleteAccount = () => {
-    // Handle delete account
     Alert.alert('Delete Account', 'Are you sure you want to delete your account? This action cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => console.log('Account deleted') },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const result = await deleteAccount();
+            if (result.success) {
+              setShowProfileScreen(false);
+              setShowScanScreen(false);
+              setShowPermissions(true);
+            } else {
+              Alert.alert('Error', result.error || 'Failed to delete account. Please try again.');
+            }
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete account. Please try again.');
+          }
+        },
+      },
     ]);
   };
 

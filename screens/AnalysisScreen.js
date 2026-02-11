@@ -5,7 +5,7 @@ import { File } from 'expo-file-system/next';
 import { analysisStyles } from '../styles';
 import colors from '../colors';
 import apiConfig from '../config/apiConfig';
-import { logDeviceMetadata } from '../utils/deviceLogger';
+import { logDeviceMetadata, getDeviceId } from '../utils/deviceLogger';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import { useAuth } from '../context/AuthContext';
 
@@ -94,9 +94,11 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
         // Log device info before request
         await logDeviceMetadata(null, lambdaEndpoint);
         
-        // Prepare headers with Authorization token if available
+        // Prepare headers with Authorization token and Device ID
+        const deviceId = await getDeviceId();
         const headers = {
           'Content-Type': 'application/json',
+          'X-Device-ID': deviceId,
         };
         
         // Add Authorization header with token if available
@@ -107,9 +109,10 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
           console.warn('No access token available, request will be sent without authentication');
         }
         
-        // Prepare request body
+        // Prepare request body (include deviceId as fallback in case header is stripped)
         const requestBody = {
           image: imageDataUrl,
+          deviceId: deviceId,
         };
         
         // Log request details (without full base64 image data)
@@ -151,8 +154,11 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
           return;
         }
 
+        // Handle error responses from Lambda
         if (!response.ok || !json.success) {
-          console.error('Lambda error response:', json);
+          console.error('Lambda error response:', response.status, json);
+          // Use the error message from the response, the errorMessages utility
+          // will convert it to a user-friendly message in the catch block
           throw new Error(json?.error || 'Analysis request failed');
         }
 
@@ -192,11 +198,12 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
         if (isCancelled) {
           return;
         }
-        setStatusMessage('Analysis failed. Please try again.');
+        // Show only a friendly popup — no raw error in the status text
+        setStatusMessage('');
         const friendlyMessage = getFriendlyErrorMessage(error, 'analysis');
-        Alert.alert('Analysis Error', friendlyMessage);
+        Alert.alert('Scan Failed', friendlyMessage, [{ text: 'OK' }]);
 
-        // Still complete the progress so user can go back / retry
+        // Complete the progress so user can go back / retry
         Animated.timing(progressAnim, {
           toValue: 1,
           duration: 300,

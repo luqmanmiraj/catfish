@@ -1,7 +1,7 @@
 // Subscription API service for backend communication
 
 import apiConfig from '../config/apiConfig';
-import { logDeviceMetadata } from '../utils/deviceLogger';
+import { logDeviceMetadata, getDeviceId } from '../utils/deviceLogger';
 
 const { API_BASE_URL } = apiConfig;
 
@@ -15,11 +15,15 @@ export async function getSubscriptionStatus(accessToken) {
     // Log device info before request
     await logDeviceMetadata(null, url);
     
+    // Include device ID header for device-level scan tracking
+    const deviceId = await getDeviceId();
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
+        'X-Device-ID': deviceId,
       },
     });
 

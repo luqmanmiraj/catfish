@@ -16,6 +16,8 @@ const ERROR_MAP = [
   [/insufficient.?tokens/i, 'You have no scans remaining. Please purchase a scan pack to continue.'],
   [/insufficient.?credits/i, 'You have no scans remaining. Please purchase a scan pack to continue.'],
   [/no scans remaining/i, 'You have no scans remaining. Please purchase a scan pack to continue.'],
+  [/device has used all free scans/i, 'This device has used all its free scans. Purchase a scan pack to continue scanning.'],
+  [/device.*exhausted.*free/i, 'This device has used all its free scans. Purchase a scan pack to continue scanning.'],
   [/purchase a scan pack/i, 'You have no scans remaining. Please purchase a scan pack to continue.'],
 
   // === Image analysis errors ===
@@ -41,6 +43,8 @@ const ERROR_MAP = [
   [/enotfound/i, 'Unable to connect to the server. Please try again later.'],
 
   // === Auth errors ===
+  [/authentication required/i, 'Please sign in or continue as guest to scan.'],
+  [/please sign in/i, 'Please sign in or continue as guest to scan.'],
   [/incorrect.*password/i, 'Incorrect email or password. Please try again.'],
   [/not authorized/i, 'Incorrect email or password. Please try again.'],
   [/user does not exist/i, 'No account found with this email. Please sign up first.'],

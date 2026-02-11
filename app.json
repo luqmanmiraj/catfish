@@ -97,7 +97,8 @@
             "READ_MEDIA_IMAGES"
           ]
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "owner": "luqmanmiraj42"
   }

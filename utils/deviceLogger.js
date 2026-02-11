@@ -6,10 +6,27 @@
 import { Platform } from 'react-native';
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
+import * as SecureStore from 'expo-secure-store';
 import * as authStorage from '../services/authStorage';
 
+const DEVICE_ID_KEY = 'catfish_persistent_device_id';
+
 /**
- * Get device ID (Android ID on Android, Installation ID on iOS)
+ * Generate a random UUID v4
+ */
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+/**
+ * Get device ID that persists across app reinstalls.
+ * - Android: Uses getAndroidId() which is hardware-bound and persistent.
+ * - iOS: Uses expo-secure-store (iOS Keychain) to persist a generated UUID
+ *   across app reinstalls. The Keychain survives app deletion/reinstall.
  */
 export async function getDeviceId() {
   try {
@@ -24,17 +41,36 @@ export async function getDeviceId() {
         console.warn('Could not get Android ID:', error);
       }
     }
-    
-    // Fallback to installation ID (works on both platforms)
+
+    // For iOS (and Android fallback): use SecureStore for persistence across reinstalls
+    try {
+      const storedId = await SecureStore.getItemAsync(DEVICE_ID_KEY);
+      if (storedId) {
+        return storedId;
+      }
+    } catch (error) {
+      console.warn('Could not read device ID from SecureStore:', error);
+    }
+
+    // No stored ID found — generate a new one and persist it
+    let newDeviceId;
     try {
       const installationId = await Application.getInstallationIdAsync();
-      return installationId;
+      newDeviceId = installationId || generateUUID();
     } catch (error) {
       console.warn('Could not get installation ID:', error);
+      newDeviceId = generateUUID();
     }
-    
-    // Last resort: generate a fallback ID
-    return `device-${Platform.OS}-${Date.now()}`;
+
+    // Persist the device ID in SecureStore (iOS Keychain) so it survives reinstalls
+    try {
+      await SecureStore.setItemAsync(DEVICE_ID_KEY, newDeviceId);
+      console.log('Persisted device ID to SecureStore');
+    } catch (error) {
+      console.warn('Could not persist device ID to SecureStore:', error);
+    }
+
+    return newDeviceId;
   } catch (error) {
     console.error('Error getting device ID:', error);
     return `device-unknown-${Date.now()}`;

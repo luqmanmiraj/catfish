@@ -4,7 +4,7 @@
  */
 
 import apiConfig from '../config/apiConfig';
-import { logDeviceMetadata } from '../utils/deviceLogger';
+import { logDeviceMetadata, getDeviceId } from '../utils/deviceLogger';
 
 const { API_BASE_URL } = apiConfig;
 
@@ -54,10 +54,12 @@ async function apiRequest(endpoint, options = {}) {
  * @param {string} email - User email
  * @param {string} password - User password
  * @param {string} name - User name (optional)
+ * @param {string} deviceId - Device identifier (optional, auto-detected if not provided)
  * @returns {Promise<Object>} Sign up result
  */
-export async function signUp(email, password, name = null) {
-  const body = { email, password };
+export async function signUp(email, password, name = null, deviceId = null) {
+  const finalDeviceId = deviceId || await getDeviceId();
+  const body = { email, password, deviceId: finalDeviceId };
   if (name) {
     body.name = name;
   }
@@ -72,12 +74,14 @@ export async function signUp(email, password, name = null) {
  * Confirm sign up with verification code
  * @param {string} email - User email
  * @param {string} confirmationCode - Verification code from email
+ * @param {string} deviceId - Device identifier (optional, auto-detected if not provided)
  * @returns {Promise<Object>} Confirmation result
  */
-export async function confirmSignUp(email, confirmationCode) {
+export async function confirmSignUp(email, confirmationCode, deviceId = null) {
+  const finalDeviceId = deviceId || await getDeviceId();
   return apiRequest('/auth/confirm-signup', {
     method: 'POST',
-    body: JSON.stringify({ email, confirmationCode }),
+    body: JSON.stringify({ email, confirmationCode, deviceId: finalDeviceId }),
   });
 }
 
@@ -168,6 +172,18 @@ export async function guestSignUp(deviceId) {
   });
 }
 
+/**
+ * Delete user account
+ * @param {string} accessToken - Access token
+ * @returns {Promise<Object>} Delete result
+ */
+export async function deleteAccount(accessToken) {
+  return apiRequest('/auth/delete-account', {
+    method: 'DELETE',
+    token: accessToken,
+  });
+}
+
 export default {
   signUp,
   confirmSignUp,
@@ -178,5 +194,6 @@ export default {
   confirmForgotPassword,
   getUserInfo,
   guestSignUp,
+  deleteAccount,
 };
 
