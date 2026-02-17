@@ -2,10 +2,12 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import Svg, { Path, Circle, Line, G, Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resultsStyles } from '../styles';
 import colors from '../colors';
 
 const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave, onClose }) => {
+  const insets = useSafeAreaInsets();
   // Debug: Log the analysis result to see what we're receiving
   console.log('ResultsScreen - Full analysisResult:', JSON.stringify(analysisResult, null, 2));
   console.log('ResultsScreen - analysisResult?.status:', analysisResult?.status);
@@ -41,18 +43,18 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
     if (!analysisResult) {
       return {
         headline: 'Inconclusive',
-        subheadline: 'Insufficient data for analysis',
+        subheadline: 'The image could not be verified \u2014 try a clearer or higher-resolution photo',
       };
     }
 
     // If status is explicitly set, use it
     if (isDeepfakeDetected) {
       const confidence = analysisResult?.confidence ?? analysisResult?.deepfakeScore ?? analysisResult?.score ?? null;
-      let subheadline = 'High confidence fake or AI';
+      let subheadline = 'This image shows strong signs of AI generation or manipulation';
       if (confidence != null) {
         const pct = Math.round(Number(confidence));
         if (!Number.isNaN(pct)) {
-          subheadline = `High confidence that AI was used (${pct}% confidence)`;
+          subheadline = `Our analysis is ${pct}% certain this image was AI-generated or altered`;
         }
       }
       return {
@@ -63,11 +65,11 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
 
     if (isAuthentic) {
       const confidence = analysisResult?.confidence ?? analysisResult?.score ?? null;
-      let subheadline = 'High authenticity confidence';
+      let subheadline = 'No signs of AI generation or manipulation were found';
       if (confidence != null) {
         const pct = Math.round(Number(confidence));
         if (!Number.isNaN(pct)) {
-          subheadline = `${pct}% confidence`;
+          subheadline = `Our analysis is ${pct}% certain this image is authentic`;
         }
       }
       return {
@@ -79,7 +81,7 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
     if (isUnknown) {
       return {
         headline: 'Inconclusive',
-        subheadline: 'Insufficient data for analysis',
+        subheadline: 'The image could not be verified \u2014 try a clearer or higher-resolution photo',
       };
     }
 
@@ -114,10 +116,10 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
 
     const subheadline =
       subheadlineParts.length > 0
-        ? subheadlineParts.join(' • ')
+        ? subheadlineParts.join(' \u2022 ')
         : isAIGenerated
-          ? 'Image shows patterns consistent with AI generation.'
-          : 'High authenticity confidence';
+          ? 'This image shows patterns consistent with AI generation'
+          : 'No signs of AI generation or manipulation were found';
 
     return {
       headline,
@@ -128,28 +130,28 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
   const { headline, subheadline } = getSummaryFromResult();
 
   // Get metadata values with fallbacks
-  const getMetadata = () => {
-    if (!analysisResult?.metadata) {
-      return {
-        detectionAlgorithm: 'AI Pattern Recognition v2.1',
-        processingTime: '3.2s',
-        imageQuality: 'High Resolution',
-      };
-    }
-    return {
-      detectionAlgorithm: analysisResult.metadata.detectionAlgorithm || 'AI Pattern Recognition v2.1',
-      processingTime: analysisResult.metadata.processingTime || '3.2s',
-      imageQuality: analysisResult.metadata.imageQuality || 'High Resolution',
-    };
-  };
+  // const getMetadata = () => {
+  //   if (!analysisResult?.metadata) {
+  //     return {
+  //       detectionAlgorithm: 'AI Pattern Recognition v2.1',
+  //       processingTime: '3.2s',
+  //       imageQuality: 'High Resolution',
+  //     };
+  //   }
+  //   return {
+  //     detectionAlgorithm: analysisResult.metadata.detectionAlgorithm || 'AI Pattern Recognition v2.1',
+  //     processingTime: analysisResult.metadata.processingTime || '3.2s',
+  //     imageQuality: analysisResult.metadata.imageQuality || 'High Resolution',
+  //   };
+  // };
 
-  const metadata = getMetadata();
-  const primaryMessage = analysisResult?.primaryMessage || 
-    (isDeepfakeDetected 
-      ? 'We can say with high confidence that this image was partially or completely created or altered using AI.'
-      : isUnknown
-        ? 'Image quality too low or insufficient data to verify authenticity.'
-        : 'Below is a summary of the Hive AI analysis for this image.');
+  // const metadata = getMetadata();
+  // const primaryMessage = analysisResult?.primaryMessage || 
+  //   (isDeepfakeDetected 
+  //     ? 'We can say with high confidence that this image was partially or completely created or altered using AI.'
+  //     : isUnknown
+  //       ? 'Image quality too low or insufficient data to verify authenticity.'
+  //       : 'Below is a summary of the Hive AI analysis for this image.');
 
   // Render icon based on status
   const renderIcon = () => {
@@ -304,74 +306,74 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
   };
 
   // Render analysis header icon
-  const renderAnalysisIcon = () => {
-    if (isDeepfakeDetected) {
-      // Red circle with diagonal line (prohibited/stop symbol)
-      return (
-        <View style={resultsStyles.checkmarkContainer}>
-          <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-            <Circle cx="8.5" cy="8.5" r="8.5" fill="#FF3B30" />
-            <Path
-              d="M3 3L14 14M14 3L3 14"
-              stroke="white"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          </Svg>
-        </View>
-      );
-    }
-
-    if (isUnknown) {
-      // Square icon with rounded corners and white "i" for inconclusive
-      return (
-        <View style={resultsStyles.checkmarkContainer}>
-          <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-            {/* Rounded square background */}
-            <Path
-              d="M0 2.5C0 1.11929 1.11929 0 2.5 0H14.5C15.8807 0 17 1.11929 17 2.5V14.5C17 15.8807 15.8807 17 14.5 17H2.5C1.11929 17 0 15.8807 0 14.5V2.5Z"
-              fill="#9CA3AF"
-            />
-            {/* White lowercase "i" */}
-            <Circle cx="8.5" cy="5" r="1" fill="white" />
-            <Path
-              d="M8.5 7V12"
-              stroke="white"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </Svg>
-        </View>
-      );
-    }
-
-    // Green rounded rectangle with white checkmark for authentic
-    return (
-      <View style={resultsStyles.checkmarkContainer}>
-        <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-          <Defs>
-            <LinearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="17" gradientUnits="userSpaceOnUse">
-              <Stop offset="0" stopColor="#22C55E" stopOpacity="1" />
-              <Stop offset="1" stopColor="#00C853" stopOpacity="1" />
-            </LinearGradient>
-          </Defs>
-          {/* Rounded rectangle background with gradient */}
-          <Path
-            d="M0 3C0 1.34315 1.34315 0 3 0H14C15.6569 0 17 1.34315 17 3V14C17 15.6569 15.6569 17 14 17H3C1.34315 17 0 15.6569 0 14V3Z"
-            fill="url(#greenGradient)"
-          />
-          {/* White checkmark */}
-          <Path
-            d="M4 8.5L7 11.5L13 5.5"
-            stroke="white"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
-      </View>
-    );
-  };
+  // const renderAnalysisIcon = () => {
+  //   if (isDeepfakeDetected) {
+  //     // Red circle with diagonal line (prohibited/stop symbol)
+  //     return (
+  //       <View style={resultsStyles.checkmarkContainer}>
+  //         <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+  //           <Circle cx="8.5" cy="8.5" r="8.5" fill="#FF3B30" />
+  //           <Path
+  //             d="M3 3L14 14M14 3L3 14"
+  //             stroke="white"
+  //             strokeWidth="2.5"
+  //             strokeLinecap="round"
+  //           />
+  //         </Svg>
+  //       </View>
+  //     );
+  //   }
+  //
+  //   if (isUnknown) {
+  //     // Square icon with rounded corners and white "i" for inconclusive
+  //     return (
+  //       <View style={resultsStyles.checkmarkContainer}>
+  //         <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+  //           {/* Rounded square background */}
+  //           <Path
+  //             d="M0 2.5C0 1.11929 1.11929 0 2.5 0H14.5C15.8807 0 17 1.11929 17 2.5V14.5C17 15.8807 15.8807 17 14.5 17H2.5C1.11929 17 0 15.8807 0 14.5V2.5Z"
+  //             fill="#9CA3AF"
+  //           />
+  //           {/* White lowercase "i" */}
+  //           <Circle cx="8.5" cy="5" r="1" fill="white" />
+  //           <Path
+  //             d="M8.5 7V12"
+  //             stroke="white"
+  //             strokeWidth="1.5"
+  //             strokeLinecap="round"
+  //           />
+  //         </Svg>
+  //       </View>
+  //     );
+  //   }
+  //
+  //   // Green rounded rectangle with white checkmark for authentic
+  //   return (
+  //     <View style={resultsStyles.checkmarkContainer}>
+  //       <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+  //         <Defs>
+  //           <LinearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="17" gradientUnits="userSpaceOnUse">
+  //             <Stop offset="0" stopColor="#22C55E" stopOpacity="1" />
+  //             <Stop offset="1" stopColor="#00C853" stopOpacity="1" />
+  //           </LinearGradient>
+  //         </Defs>
+  //         {/* Rounded rectangle background with gradient */}
+  //         <Path
+  //           d="M0 3C0 1.34315 1.34315 0 3 0H14C15.6569 0 17 1.34315 17 3V14C17 15.6569 15.6569 17 14 17H3C1.34315 17 0 15.6569 0 14V3Z"
+  //           fill="url(#greenGradient)"
+  //         />
+  //         {/* White checkmark */}
+  //         <Path
+  //           d="M4 8.5L7 11.5L13 5.5"
+  //           stroke="white"
+  //           strokeWidth="2.5"
+  //           strokeLinecap="round"
+  //           strokeLinejoin="round"
+  //         />
+  //       </Svg>
+  //     </View>
+  //   );
+  // };
 
   return (
     <View style={resultsStyles.container}>
@@ -404,14 +406,13 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
           <Text style={resultsStyles.confidenceText}>{subheadline}</Text>
         </View>
 
-        {/* Detailed Analysis Section */}
+        {/* Detailed Analysis Section - commented out
         <View style={resultsStyles.analysisCard}>
           <View style={resultsStyles.analysisHeader}>
             {renderAnalysisIcon()}
             <Text style={resultsStyles.analysisTitle}>Detailed Analysis</Text>
           </View>
 
-          {/* Divider under header */}
           <View style={resultsStyles.analysisDivider} />
 
           <View style={resultsStyles.analysisSummaryContainer}>
@@ -423,7 +424,6 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
           </View>
 
           <View style={resultsStyles.detailsList}>
-            {/* Divider above details list */}
             <View style={resultsStyles.analysisDividerSummary} />
             <View style={resultsStyles.detailRow}>
               <Text style={resultsStyles.detailLabel}>Detection Algorithm</Text>
@@ -439,32 +439,10 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
             </View>
           </View>
         </View>
+        */}
 
         {/* Action Buttons */}
-        <View style={resultsStyles.actionsContainer}>
-          <TouchableOpacity
-            style={resultsStyles.scanAgainButton}
-            onPress={onScanAgain}
-            activeOpacity={0.8}
-          >
-            <View style={{ transform: [{ scaleX: -1 }] }}>
-              <Svg width="20" height="20" viewBox="0 0 528.919 528.918" fill="none">
-                <G transform={`rotate(70, 264.46, 264.46)`}>
-                  <Path
-                    d="M70.846,324.059c3.21,3.926,8.409,3.926,11.619,0l69.162-84.621c3.21-3.926,1.698-7.108-3.372-7.108h-36.723
-			c-5.07,0-8.516-4.061-7.427-9.012c18.883-85.995,95.625-150.564,187.207-150.564c105.708,0,191.706,85.999,191.706,191.706
-			c0,105.709-85.998,191.707-191.706,191.707c-12.674,0-22.95,10.275-22.95,22.949s10.276,22.949,22.95,22.949
-			c131.018,0,237.606-106.588,237.606-237.605c0-131.017-106.589-237.605-237.606-237.605
-			c-116.961,0-214.395,84.967-233.961,196.409c-0.878,4.994-5.52,9.067-10.59,9.067H5.057c-5.071,0-6.579,3.182-3.373,7.108
-			L70.846,324.059z"
-                    fill="white"
-                  />
-                </G>
-              </Svg>
-            </View>
-            <Text style={resultsStyles.scanAgainText}>Check Another Photo</Text>
-          </TouchableOpacity>
-
+        <View style={[resultsStyles.actionsContainer, { paddingBottom: Math.max(insets.bottom, 40) }]}>
           <View style={resultsStyles.bottomActions}>
             <TouchableOpacity
               style={resultsStyles.shareButton}
@@ -506,6 +484,29 @@ const ResultsScreen = ({ imageUri, analysisResult, onScanAgain, onShare, onSave,
               <Text style={resultsStyles.saveButtonText}>Save to History</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={resultsStyles.scanAgainButton}
+            onPress={onScanAgain}
+            activeOpacity={0.8}
+          >
+            <View style={{ transform: [{ scaleX: -1 }] }}>
+              <Svg width="20" height="20" viewBox="0 0 528.919 528.918" fill="none">
+                <G transform={`rotate(70, 264.46, 264.46)`}>
+                  <Path
+                    d="M70.846,324.059c3.21,3.926,8.409,3.926,11.619,0l69.162-84.621c3.21-3.926,1.698-7.108-3.372-7.108h-36.723
+			c-5.07,0-8.516-4.061-7.427-9.012c18.883-85.995,95.625-150.564,187.207-150.564c105.708,0,191.706,85.999,191.706,191.706
+			c0,105.709-85.998,191.707-191.706,191.707c-12.674,0-22.95,10.275-22.95,22.949s10.276,22.949,22.95,22.949
+			c131.018,0,237.606-106.588,237.606-237.605c0-131.017-106.589-237.605-237.606-237.605
+			c-116.961,0-214.395,84.967-233.961,196.409c-0.878,4.994-5.52,9.067-10.59,9.067H5.057c-5.071,0-6.579,3.182-3.373,7.108
+			L70.846,324.059z"
+                    fill="white"
+                  />
+                </G>
+              </Svg>
+            </View>
+            <Text style={resultsStyles.scanAgainText}>Check Another Photo</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
       <StatusBar style="light" />

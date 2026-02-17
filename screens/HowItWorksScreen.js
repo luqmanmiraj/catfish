@@ -30,7 +30,7 @@ const HowItWorksScreen = ({ onClose }) => {
       {/* Content */}
       <ScrollView
         style={howItWorksStyles.scrollView}
-        contentContainerStyle={howItWorksStyles.scrollContent}
+        contentContainerStyle={[howItWorksStyles.scrollContent, { paddingBottom: Math.max(insets.bottom, 40) }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={howItWorksStyles.content}>

@@ -303,7 +303,7 @@ export async function purchaseProduct(productIdentifier) {
     // Find the package with matching identifier
     const packageToPurchase = offerings.current.availablePackages.find(
       pkg => pkg.identifier === productIdentifier || 
-             pkg.storeProduct.identifier === productIdentifier
+             pkg.product.identifier === productIdentifier
     );
 
     if (!packageToPurchase) {
@@ -401,7 +401,7 @@ export async function getPackagesByType() {
     };
 
     packages.forEach(pkg => {
-      const identifier = pkg.identifier?.toLowerCase() || pkg.storeProduct.identifier?.toLowerCase() || '';
+      const identifier = pkg.identifier?.toLowerCase() || pkg.product.identifier?.toLowerCase() || '';
       
       if (identifier.includes('basic') || identifier === 'basic') {
         result.basic = pkg;
@@ -514,10 +514,10 @@ export async function syncPurchases() {
  * @returns {string} Formatted price string
  */
 export function getFormattedPrice(pkg) {
-  if (!pkg || !pkg.storeProduct) {
+  if (!pkg || !pkg.product) {
     return 'N/A';
   }
-  return pkg.storeProduct.priceString || 'N/A';
+  return pkg.product.priceString || 'N/A';
 }
 
 /**
@@ -529,5 +529,5 @@ export function getProductIdentifier(pkg) {
   if (!pkg) {
     return null;
   }
-  return pkg.storeProduct.identifier || pkg.identifier || null;
+  return pkg.product.identifier || pkg.identifier || null;
 }

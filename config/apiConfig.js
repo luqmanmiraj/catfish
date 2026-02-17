@@ -21,7 +21,7 @@ const API_BASE_URL = 'https://3oaimkf4g6.execute-api.us-east-1.amazonaws.com/dev
 // DISABLED: Set to null/empty to disable RevenueCat
 const REVENUECAT_API_KEY = {
   ios: 'appl_UWJroankJbGKWZoGAaWiNpXEQEn', // iOS RevenueCat API key
-  android: null, // Disabled - set to null to disable RevenueCat
+  android: 'goog_TyFFwpqepTcrBeyAhnDrmQNxmzC', // Android RevenueCat API key
 };
 
 // Analysis endpoint configuration

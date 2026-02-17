@@ -211,7 +211,10 @@ export const scanStyles = StyleSheet.create({
   },
   homeButton: {
     marginTop: 8,
-    padding: 8,
+    marginBottom: 4,
+    paddingTop: 8,
+    paddingLeft: 8,
+    paddingRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -219,9 +222,9 @@ export const scanStyles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 0,
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 0,
     marginBottom: 10,
   },
   howItWorksButton: {
@@ -252,10 +255,12 @@ export const scanStyles = StyleSheet.create({
     textAlign: 'center',
   },
   contentArea: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 20,
   },
   scanCircleContainer: {
     alignItems: 'center',
@@ -264,8 +269,8 @@ export const scanStyles = StyleSheet.create({
     marginBottom: 10,
   },
   scanCircle: {
-    width: 400,
-    height: 400,
+    width: 352,
+    height: 352,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -828,7 +833,7 @@ export const profileStyles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.grey,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: 8,
   },
   pricingInfo: {
     width: '100%',
@@ -861,6 +866,25 @@ export const profileStyles = StyleSheet.create({
     fontSize: 16,
     color: colors.accent.gold,
     fontWeight: 'bold',
+  },
+  packageGetButton: {
+    backgroundColor: colors.accent.gold,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginTop: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 70,
+    minHeight: 30,
+  },
+  packageGetButtonText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: colors.text.black,
+  },
+  packageGetButtonDisabled: {
+    opacity: 0.4,
   },
   settingsTitle: {
     fontSize: 20,
@@ -1352,6 +1376,7 @@ export const resultsStyles = StyleSheet.create({
   bottomActions: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 16,
   },
   shareButton: {
     flex: 1,
@@ -1364,7 +1389,7 @@ export const resultsStyles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
     marginBottom: 5,
-    borderWidth: 0.1,
+    borderWidth: 0.5,
     borderColor: '#fff',
   },
   shareButtonText: {
@@ -1383,7 +1408,7 @@ export const resultsStyles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
     marginBottom: 5,
-    borderWidth: 0.1,
+    borderWidth: 0.5,
     borderColor: '#fff',
   },
   saveButtonText: {

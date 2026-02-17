@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
@@ -18,6 +19,7 @@ import { signUpStyles } from '../styles';
 import PasswordInput from '../components/PasswordInput';
 
 const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onViewPrivacy }) => {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -170,7 +172,7 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
       <StatusBar style="light" />
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={signUpStyles.scrollContent}
+        contentContainerStyle={[signUpStyles.scrollContent, { paddingBottom: Math.max(insets.bottom, 120) }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

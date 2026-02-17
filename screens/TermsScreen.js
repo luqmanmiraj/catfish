@@ -30,7 +30,7 @@ const TermsScreen = ({ onClose }) => {
       {/* Content */}
       <ScrollView
         style={termsStyles.scrollView}
-        contentContainerStyle={termsStyles.scrollContent}
+        contentContainerStyle={[termsStyles.scrollContent, { paddingBottom: Math.max(insets.bottom, 40) }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={termsStyles.content}>

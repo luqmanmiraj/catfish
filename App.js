@@ -7,7 +7,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
+// import * as ImagePicker from 'expo-image-picker';
 import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
@@ -39,7 +39,6 @@ import { getScanHistory, updateScanHistory, createScanHistory } from './services
 import * as Analytics from './services/analyticsService';
 import * as SentryService from './services/sentryService';
 import * as PostHogService from './services/posthogService';
-import * as SampleImagesService from './services/sampleImagesService';
 import apiConfig from './config/apiConfig';
 import { getFriendlyErrorMessage } from './utils/errorMessages';
 import styles from './styles';
@@ -85,6 +84,7 @@ function AppContent() {
   const [isCreatingGuest, setIsCreatingGuest] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const compositeViewRef = useRef(null);
+  const compositeImageLoaded = useRef(false);
   const [isCreatingComposite, setIsCreatingComposite] = useState(false);
   const [currentScanId, setCurrentScanId] = useState(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0); // Force HistoryScreen refresh
@@ -225,26 +225,28 @@ function AppContent() {
       
       console.log('Guest user created successfully');
       
-      // Request camera permissions - this will show the native iOS popup
-      const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
-      
-      if (cameraPermission.status === 'granted') {
-        console.log('Camera permission granted');
-        // Show scan screen after permission is granted
-        setShowScanScreen(true);
-        setShowPermissions(false);
-      } else {
-        console.log('Camera permission denied');
-        // Still show scan screen even if permission is denied
-        // User can grant permission later when they try to use camera
-        setShowScanScreen(true);
-        setShowPermissions(false);
-        Alert.alert(
-          'Camera Permission',
-          'Camera permission is required to scan images. You can grant it later in settings.',
-          [{ text: 'OK' }]
-        );
-      }
+      // Camera permission commented out - not needed since camera feature is disabled
+      // (only gallery upload is active in CameraScanScreen)
+      // const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+      //
+      // if (cameraPermission.status === 'granted') {
+      //   console.log('Camera permission granted');
+      //   setShowScanScreen(true);
+      //   setShowPermissions(false);
+      // } else {
+      //   console.log('Camera permission denied');
+      //   setShowScanScreen(true);
+      //   setShowPermissions(false);
+      //   Alert.alert(
+      //     'Camera Permission',
+      //     'Camera permission is required to scan images. You can grant it later in settings.',
+      //     [{ text: 'OK' }]
+      //   );
+      // }
+
+      // Navigate directly to scan screen
+      setShowScanScreen(true);
+      setShowPermissions(false);
     } catch (error) {
       console.error('Error in guest signup flow:', error);
       Alert.alert(
@@ -541,13 +543,12 @@ function AppContent() {
   // Helper function to create composite image with text overlay
   const createCompositeImage = async (imageUri, result) => {
     return new Promise((resolve, reject) => {
-      // Set state to show composite view temporarily
+      compositeImageLoaded.current = false;
       setIsCreatingComposite(true);
-      
-      // Wait for view to render, then capture
-      setTimeout(async () => {
-        try {
-          if (compositeViewRef.current) {
+
+      const checkAndCapture = async (attempts = 0) => {
+        if (compositeImageLoaded.current && compositeViewRef.current) {
+          try {
             const uri = await captureRef(compositeViewRef.current, {
               format: 'jpg',
               quality: 0.9,
@@ -555,16 +556,22 @@ function AppContent() {
             });
             setIsCreatingComposite(false);
             resolve(uri);
-          } else {
+          } catch (error) {
             setIsCreatingComposite(false);
-            reject(new Error('Composite view ref not available'));
+            console.error('Error capturing composite image:', error);
+            reject(error);
           }
-        } catch (error) {
+        } else if (attempts < 20) {
+          // Retry every 100ms, up to 2 seconds max
+          setTimeout(() => checkAndCapture(attempts + 1), 100);
+        } else {
           setIsCreatingComposite(false);
-          console.error('Error capturing composite image:', error);
-          reject(error);
+          reject(new Error('Image failed to load for composite'));
         }
-      }, 300); // Give more time for view to render
+      };
+
+      // Start checking after a small initial delay for the view to mount
+      setTimeout(() => checkAndCapture(0), 100);
     });
   };
 
@@ -595,19 +602,21 @@ function AppContent() {
       }
 
       // Prepare image file for sharing
-      
-      // Check if the image URI is a remote URL or local file
-      if (selectedImageUri.startsWith('http://') || selectedImageUri.startsWith('https://')) {
-        // Download remote image to a temporary file
-        const filename = `share_image_${Date.now()}.jpg`;
-        const localUri = `${FileSystem.cacheDirectory}${filename}`;
-        const downloadResult = await FileSystem.downloadAsync(selectedImageUri, localUri);
-        imageFileUri = downloadResult.uri;
-      } else if (!selectedImageUri.startsWith('file://') && !selectedImageUri.startsWith('content://')) {
-        // Ensure local files have file:// prefix (Android content:// URIs are handled separately)
-        imageFileUri = selectedImageUri.startsWith('/') 
-          ? `file://${selectedImageUri}` 
-          : `file:///${selectedImageUri}`;
+      // Only fix up URI if composite creation failed and we're using the original
+      if (imageFileUri === selectedImageUri) {
+        // Check if the image URI is a remote URL or local file
+        if (selectedImageUri.startsWith('http://') || selectedImageUri.startsWith('https://')) {
+          // Download remote image to a temporary file
+          const filename = `share_image_${Date.now()}.jpg`;
+          const localUri = `${FileSystem.cacheDirectory}${filename}`;
+          const downloadResult = await FileSystem.downloadAsync(selectedImageUri, localUri);
+          imageFileUri = downloadResult.uri;
+        } else if (!selectedImageUri.startsWith('file://') && !selectedImageUri.startsWith('content://')) {
+          // Ensure local files have file:// prefix (Android content:// URIs are handled separately)
+          imageFileUri = selectedImageUri.startsWith('/') 
+            ? `file://${selectedImageUri}` 
+            : `file:///${selectedImageUri}`;
+        }
       }
 
       // Ensure URI is properly formatted for sharing
@@ -938,6 +947,12 @@ function AppContent() {
     setShowPaywall(false);
   };
 
+  const handlePurchaseComplete = async () => {
+    await refreshSubscriptionStatus();
+    setShowPaywall(false);
+    handleScanClick();
+  };
+
   const handleManageSubscription = async () => {
     try {
       await presentCustomerCenter();
@@ -1199,91 +1214,100 @@ function AppContent() {
           {/* Hidden composite view for image capture */}
           {isCreatingComposite && selectedImageUri && (
             <View
-              ref={compositeViewRef}
               style={{
                 position: 'absolute',
-                left: -9999,
-                top: -9999,
-                width: Dimensions.get('window').width,
-                height: Dimensions.get('window').width, // Square for now, will adjust based on image
-                opacity: 0.01, // Nearly invisible but still renderable
+                left: 0,
+                top: 0,
+                width: 1,
+                height: 1,
+                overflow: 'hidden',
               }}
-              collapsable={false}
+              pointerEvents="none"
             >
-              <Image
-                source={{ uri: selectedImageUri }}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  resizeMode: 'cover',
-                }}
-              />
               <View
+                ref={compositeViewRef}
                 style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.60)',
-                  padding: 20,
-                  paddingBottom: 50, // Increased bottom padding for more space below text
+                  width: Dimensions.get('window').width,
+                  height: Dimensions.get('window').width,
                 }}
+                collapsable={false}
               >
-                <Text
+                <Image
+                  source={{ uri: selectedImageUri }}
                   style={{
-                    fontSize: 24,
-                    fontWeight: 'bold',
-                    color: textColor,
-                    marginBottom: 8,
-                    textAlign: 'center',
-                    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-                    textShadowOffset: { width: 0, height: 2 },
-                    textShadowRadius: 4,
+                    width: '100%',
+                    height: '100%',
+                    resizeMode: 'cover',
+                  }}
+                  onLoad={() => { compositeImageLoaded.current = true; }}
+                />
+                <View
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.60)',
+                    padding: 20,
+                    paddingBottom: 50,
                   }}
                 >
-                  {headline}
-                </Text>
-                <Text
+                  <Text
+                    style={{
+                      fontSize: 24,
+                      fontWeight: 'bold',
+                      color: textColor,
+                      marginBottom: 8,
+                      textAlign: 'center',
+                      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                      textShadowOffset: { width: 0, height: 2 },
+                      textShadowRadius: 4,
+                    }}
+                  >
+                    {headline}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: '#FFFFFF',
+                      textAlign: 'center',
+                      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 3,
+                      marginBottom: 10,
+                    }}
+                  >
+                    {subheadline}
+                  </Text>
+                </View>
+                {/* Logo and branding at bottom right corner */}
+                <View
                   style={{
-                    fontSize: 16,
-                    color: '#FFFFFF',
-                    textAlign: 'center',
-                    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-                    textShadowOffset: { width: 0, height: 1 },
-                    textShadowRadius: 3,
-                    marginBottom: 10, // Add margin below percentage text
+                    position: 'absolute',
+                    bottom: 10,
+                    right: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 4,
                   }}
                 >
-                  {subheadline}
-                </Text>
-              </View>
-              {/* Logo and branding at bottom right corner */}
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: 10,
-                  right: 10,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: 'rgba(0, 0, 0, 0.65)',
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  borderRadius: 4,
-                }}
-              >
-                <CatfishLogo width={20} height={22} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: '#FFFFFF',
-                    marginLeft: 6,
-                    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-                    textShadowOffset: { width: 0, height: 1 },
-                    textShadowRadius: 2,
-                  }}
-                >
-                  Scanned by Catfish Crasher
-                </Text>
+                  <CatfishLogo width={20} height={22} />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: '#FFFFFF',
+                      marginLeft: 6,
+                      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 2,
+                    }}
+                  >
+                    Scanned by Catfish Crasher
+                  </Text>
+                </View>
               </View>
             </View>
           )}
@@ -1320,6 +1344,7 @@ function AppContent() {
           onLogOut={handleLogOut}
           onDeleteAccount={handleDeleteAccount}
           onManageSubscription={handleManageSubscription}
+          onPurchaseComplete={handlePurchaseComplete}
         />
       );
     }
@@ -1417,7 +1442,7 @@ function AppContent() {
             
           </View>
         </View>
-        <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 30) - 5 }]}>
+        <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 35) }]}>
           <View style={{ width: '100%', maxWidth: 345, alignItems: 'center' }}>
             {isAuthenticated ? (
               // If user is logged in, show "Continue to App" button
@@ -1454,6 +1479,7 @@ function AppContent() {
         <RevenueCatPaywallScreen
           onClose={handlePaywallClose}
           onPurchaseSuccess={handlePaywallPurchaseSuccess}
+          onPurchaseComplete={handlePurchaseComplete}
           onRestore={async () => {
             try {
               await restorePurchases();
@@ -1513,20 +1539,6 @@ export default function App() {
         },
       });
 
-      // Copy sample images to gallery on first launch
-      try {
-        const result = await SampleImagesService.copySampleImagesToGallery();
-        if (result.success && result.copiedCount > 0) {
-          console.log(`✓ Copied ${result.copiedCount} sample images to gallery`);
-        } else if (result.skipped) {
-          console.log('Sample images already in gallery');
-        } else if (result.error) {
-          console.warn('Could not copy sample images:', result.error);
-        }
-      } catch (error) {
-        console.error('Error initializing sample images:', error);
-        // Don't block app launch if this fails
-      }
     };
     initializeServices();
   }, []);

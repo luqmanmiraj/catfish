@@ -75,7 +75,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       };
 
       allPackages.forEach(pkg => {
-        const identifier = (pkg.identifier || pkg.storeProduct?.identifier || '').toLowerCase();
+        const identifier = (pkg.identifier || pkg.product?.identifier || '').toLowerCase();
         if (identifier.includes('pack_15') || identifier.includes('15') || identifier.includes('fifteen')) {
           tokenPackages.pack_15 = pkg;
         } else if (identifier.includes('pack_50') || identifier.includes('50') || identifier.includes('fifty')) {
@@ -143,9 +143,9 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       
       try {
         const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
-        const productId = pkg.identifier || pkg.storeProduct?.identifier || 'unknown';
-        const price = pkg.storeProduct?.price || 0;
-        const currency = pkg.storeProduct?.currencyCode || 'USD';
+        const productId = pkg.identifier || pkg.product?.identifier || 'unknown';
+        const price = pkg.product?.price || 0;
+        const currency = pkg.product?.currencyCode || 'USD';
         const transactionId = customerInfo.originalPurchaseDate || Date.now().toString();
         
         await Analytics.trackPurchaseCompleted({

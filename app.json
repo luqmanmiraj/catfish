@@ -3,7 +3,7 @@
     "name": "catfish",
     "slug": "catfish",
     "scheme": "com.anonymous.catfish",
-    "version": "1.0.1",
+    "version": "1.0.11",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "7",
+      "buildNumber": "18",
       "infoPlist": {
         "NSCameraUsageDescription": "Access for camera to pass photo/video identification",
         "NSPhotoLibraryUsageDescription": "Access to save analyzed images to your photo library",
@@ -33,6 +33,7 @@
       "bundleIdentifier": "com.anonymous.catfish"
     },
     "android": {
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

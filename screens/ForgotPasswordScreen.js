@@ -11,12 +11,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { forgotPasswordStyles } from '../styles';
 
 const ForgotPasswordScreen = ({ onBack, onCodeSent }) => {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { forgotPassword } = useAuth();
@@ -60,7 +62,7 @@ const ForgotPasswordScreen = ({ onBack, onCodeSent }) => {
     >
       <StatusBar style="light" />
       <ScrollView
-        contentContainerStyle={forgotPasswordStyles.scrollContent}
+        contentContainerStyle={[forgotPasswordStyles.scrollContent, { paddingBottom: Math.max(insets.bottom, 40) }]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}

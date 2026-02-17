@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity, Modal, StyleSheet, Alert } from 'react-native';
+import { Text, View, ScrollView, TouchableOpacity, Modal, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path, G, Defs, LinearGradient as SvgLinearGradient, Stop, Filter, FeFlood, FeColorMatrix, FeMorphology, FeOffset, FeGaussianBlur, FeComposite, FeBlend } from 'react-native-svg';
@@ -18,7 +18,7 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
   const isGuest = user?.email?.includes('@temp.catfish.app') || user?.['custom:is_guest'] === 'true';
   
   // Get user email or name for display (hide device ID for guests)
-  const userDisplayName = isGuest ? 'Guest Account' : (user?.email || user?.name);
+  const userDisplayName = isGuest ? 'Guest Account' : (user?.name || user?.email);
   
   // Check if this is the first time visiting the scan screen
   useEffect(() => {
@@ -123,7 +123,12 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
       </View>
 
       {/* Main Content Area */}
-      <View style={scanStyles.contentArea}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={scanStyles.contentArea}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
         {/* How It Works - Above Camera Icon */}
         {onHowItWorks && (
           <View style={scanStyles.howItWorksContainer}>
@@ -241,10 +246,10 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
         <Text style={scanStyles.descriptionText}>
           {isScanning ? 'Please wait while we analyze your image' : 'Detect AI-generated images and protect against catfishing'}
         </Text>
-      </View>
+      </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={[scanStyles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[scanStyles.bottomNav, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <TouchableOpacity style={scanStyles.navItem}>
           <Svg width="24" height="24" viewBox="0 0 21 16" fill="none">
             <Path
@@ -305,7 +310,7 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
       >
         <View style={[welcomeModalStyles.container, { paddingTop: Math.max(insets.top, 20) }]}>
           <View style={welcomeModalStyles.header}>
-            <Text style={welcomeModalStyles.title}>Welcome to Catfish Crasher! 🎉</Text>
+            <Text style={welcomeModalStyles.title}>Welcome to Catfish Crasher</Text>
           </View>
 
           <View style={welcomeModalStyles.content}>
@@ -329,15 +334,15 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
               </View>
             </View>
 
-            <View style={welcomeModalStyles.pricingSection}>
-              <Text style={welcomeModalStyles.sectionTitle}>Pricing:</Text>
-              <View style={welcomeModalStyles.freeScansContainer}>
-                <Text style={welcomeModalStyles.freeScansText}>5 free scans — On signup</Text>
-              </View>
-              <Text style={welcomeModalStyles.pricingText}>15 scans — $4.99</Text>
-              <Text style={welcomeModalStyles.pricingText}>50 scans — $9.99</Text>
-              <Text style={welcomeModalStyles.pricingText}>100 scans — $16.99</Text>
-            </View>
+            {onWatchVideo && (
+              <TouchableOpacity
+                onPress={onWatchVideo}
+                activeOpacity={0.7}
+                style={welcomeModalStyles.watchVideoButton}
+              >
+                <Text style={welcomeModalStyles.watchVideoText}>Watch Video</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={[welcomeModalStyles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
@@ -449,6 +454,17 @@ const welcomeModalStyles = StyleSheet.create({
     color: colors.text.white,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  watchVideoButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  watchVideoText: {
+    fontSize: 16,
+    color: colors.accent.lightGreyBlue,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });
 

@@ -8,8 +8,10 @@ import apiConfig from '../config/apiConfig';
 import { logDeviceMetadata, getDeviceId } from '../utils/deviceLogger';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import { useAuth } from '../context/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const AnalysisScreen = ({ imageUri, onComplete }) => {
+  const insets = useSafeAreaInsets();
   const { accessToken } = useAuth();
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState(
@@ -237,7 +239,7 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
   });
 
   return (
-    <View style={analysisStyles.container}>
+    <View style={[analysisStyles.container, { paddingBottom: Math.max(insets.bottom, 20) }]}>
       {/* Image Container */}
       <View style={analysisStyles.imageContainer}>
         <Image source={{ uri: imageUri }} style={analysisStyles.image} resizeMode="cover" />

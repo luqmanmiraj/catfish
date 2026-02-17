@@ -10,9 +10,8 @@ import colors from '../colors';
 import UserInfoCard from '../components/UserInfoCard';
 import PurchaseScansCard from '../components/PurchaseScansCard';
 import SettingsCard from '../components/SettingsCard';
-import AccountActions from '../components/AccountActions';
 
-const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, onLogOut, onDeleteAccount, onManageSubscription }) => {
+const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, onLogOut, onDeleteAccount, onManageSubscription, onPurchaseComplete }) => {
   const insets = useSafeAreaInsets();
   const { user, isAuthenticated } = useAuth();
   const { scansRemaining, tokenBalance } = useSubscription();
@@ -41,17 +40,14 @@ const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, o
         />
 
         {/* Purchase Scan Packs Card */}
-        <PurchaseScansCard onUpgrade={onUpgrade} />
+        <PurchaseScansCard onUpgrade={onUpgrade} onPurchaseComplete={onPurchaseComplete} />
 
         {/* Settings Card */}
-        <SettingsCard />
-
-        {/* Account Management */}
-        <AccountActions onLogOut={onLogOut} onDeleteAccount={onDeleteAccount} />
+        <SettingsCard onLogOut={onLogOut} onDeleteAccount={onDeleteAccount} />
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={[profileStyles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[profileStyles.bottomNav, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <TouchableOpacity style={profileStyles.navItem} onPress={onScanClick}>
           <Svg width="24" height="24" viewBox="0 0 21 16" fill="none">
             <Path

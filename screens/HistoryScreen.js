@@ -426,7 +426,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={[historyStyles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[historyStyles.bottomNav, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <TouchableOpacity style={historyStyles.navItem} onPress={onScanClick}>
           <Svg width="24" height="24" viewBox="0 0 21 16" fill="none">
             <Path

@@ -30,7 +30,7 @@ const PrivacyScreen = ({ onClose }) => {
       {/* Content */}
       <ScrollView
         style={privacyStyles.scrollView}
-        contentContainerStyle={privacyStyles.scrollContent}
+        contentContainerStyle={[privacyStyles.scrollContent, { paddingBottom: Math.max(insets.bottom, 40) }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={privacyStyles.content}>

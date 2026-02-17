@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Text, View, TouchableOpacity } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
+import { Text, View, TouchableOpacity, Linking } from 'react-native';
+import Svg, { Path, Rect, Circle } from 'react-native-svg';
 import { profileStyles } from '../styles';
 import colors from '../colors';
+import LogoutButton from './LogoutButton';
+import DeleteAccountButton from './DeleteAccountButton';
 
-const SettingsCard = () => {
+const SettingsCard = ({ onLogOut, onDeleteAccount }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [accountExpanded, setAccountExpanded] = useState(false);
 
   return (
     <View style={profileStyles.card}>
@@ -47,7 +50,7 @@ const SettingsCard = () => {
       </View>
 
       {/* Privacy & Safety */}
-      <TouchableOpacity style={[profileStyles.settingItem, { borderBottomWidth: 0 }]}>
+      <TouchableOpacity style={profileStyles.settingItem} onPress={() => Linking.openURL('https://www.catfishcrasher.com/privacy-policy')}>
         <View style={profileStyles.settingLeft}>
           <View style={profileStyles.settingIconContainer}>
             <Svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -73,6 +76,55 @@ const SettingsCard = () => {
           />
         </Svg>
       </TouchableOpacity>
+
+      {/* Account Actions (collapsible) */}
+      <TouchableOpacity
+        style={[profileStyles.settingItem, { borderBottomWidth: 0 }]}
+        onPress={() => setAccountExpanded(!accountExpanded)}
+        activeOpacity={0.7}
+      >
+        <View style={profileStyles.settingLeft}>
+          <View style={profileStyles.settingIconContainer}>
+            <Svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <Rect width="47.9983" height="47.9983" rx="23.9991" fill="#0AB4E0" fillOpacity="0.1" />
+              <Circle cx="24" cy="20" r="5" fill="#0AB4E0" />
+              <Path
+                d="M14 33C14 28.5817 18.4772 25 24 25C29.5228 25 34 28.5817 34 33"
+                stroke="#0AB4E0"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </Svg>
+          </View>
+          <View style={profileStyles.settingTextContainer}>
+            <Text style={profileStyles.settingTitle}>Account Actions</Text>
+            <Text style={profileStyles.settingSubtitle}>Log out or delete account</Text>
+          </View>
+        </View>
+        <Svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          style={{ transform: [{ rotate: accountExpanded ? '90deg' : '0deg' }] }}
+        >
+          <Path
+            d="M6 12L10 8L6 4"
+            stroke={colors.accent.lightGreyBlue}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </TouchableOpacity>
+
+      {accountExpanded && (
+        <View style={{ paddingLeft: 16 }}>
+          <LogoutButton onPress={onLogOut} />
+          <DeleteAccountButton onPress={onDeleteAccount} />
+        </View>
+      )}
     </View>
   );
 };

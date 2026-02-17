@@ -246,7 +246,7 @@ export function SubscriptionProvider({ children }) {
       
       // Extract pack ID from package identifier
       // Package identifiers should be: pack_15, pack_50, pack_100
-      const packId = packageToPurchase.identifier || packageToPurchase.storeProduct?.identifier;
+      const packId = packageToPurchase.identifier || packageToPurchase.product?.identifier;
       
       // Notify backend about the purchase to add tokens
       if (isAuthenticated && accessToken && packId) {

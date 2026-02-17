@@ -11,12 +11,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import colors from '../colors';
 import { signInStyles } from '../styles';
 import PasswordInput from '../components/PasswordInput';
 
 const SignInScreen = ({ onSignUp, onForgotPassword, onClose, onSignInSuccess }) => {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +75,7 @@ const SignInScreen = ({ onSignUp, onForgotPassword, onClose, onSignInSuccess }) 
     >
       <StatusBar style="light" />
       <ScrollView
-        contentContainerStyle={signInStyles.scrollContent}
+        contentContainerStyle={[signInStyles.scrollContent, { paddingBottom: Math.max(insets.bottom, 40) }]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}

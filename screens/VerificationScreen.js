@@ -11,12 +11,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { verificationStyles } from '../styles';
 
 const VerificationScreen = ({ email, onVerified, onClose, onResendCode }) => {
+  const insets = useSafeAreaInsets();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -120,7 +122,7 @@ const VerificationScreen = ({ email, onVerified, onClose, onResendCode }) => {
     >
       <StatusBar style="light" />
       <ScrollView
-        contentContainerStyle={verificationStyles.scrollContent}
+        contentContainerStyle={[verificationStyles.scrollContent, { paddingBottom: Math.max(insets.bottom, 40) }]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}

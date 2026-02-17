@@ -6,11 +6,13 @@ import Svg, { Path, Circle, Defs, LinearGradient, Stop, G } from 'react-native-s
 import { cameraScanStyles } from '../styles';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useAuth } from '../context/AuthContext';
 import * as Analytics from '../services/analyticsService';
 
 const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
+  const insets = useSafeAreaInsets();
   const { scansRemaining } = useSubscription();
   const { isAuthenticated, user } = useAuth();
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -231,7 +233,7 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
         ]}
       >
         <ScrollView 
-          contentContainerStyle={cameraScanStyles.bottomScrollContent}
+          contentContainerStyle={[cameraScanStyles.bottomScrollContent, { paddingBottom: Math.max(insets.bottom, 40) }]}
           showsVerticalScrollIndicator={false}
         >
           <Text style={cameraScanStyles.dialogTitle}>Choose Image</Text>

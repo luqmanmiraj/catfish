@@ -7,6 +7,7 @@ import {
   TextInput,
   Modal,
   KeyboardAvoidingView,
+  ScrollView,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,9 +52,13 @@ export default function LabelNoteModal({ visible, onSave, onCancel, initialLabel
     >
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={[styles.content, { paddingTop: Math.max(insets.top, 20) }]}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>Add a name for this scan (optional)</Text>
@@ -105,7 +110,7 @@ export default function LabelNoteModal({ visible, onSave, onCancel, initialLabel
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -117,9 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.dark,
   },
   content: {
-    flex: 1,
     paddingHorizontal: 20,
-    paddingBottom: 20,
   },
   header: {
     marginBottom: 30,
@@ -137,7 +140,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    flex: 1,
   },
   inputContainer: {
     marginBottom: 24,
