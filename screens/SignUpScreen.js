@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { signUpStyles } from '../styles';
@@ -20,6 +20,7 @@ import PasswordInput from '../components/PasswordInput';
 
 const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onViewPrivacy }) => {
   const insets = useSafeAreaInsets();
+  const { showAlert } = useAlert();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -73,46 +74,45 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
         }
       } else {
         // Failed to resend code - show error
-        Alert.alert('Error', getFriendlyErrorMessage(resendResult.error, 'auth'));
+        showAlert({ title: 'Error', message: getFriendlyErrorMessage(resendResult.error, 'auth') });
       }
     } catch (resendError) {
-      // Error resending code - show error
-      Alert.alert('Error', getFriendlyErrorMessage(resendError, 'auth'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(resendError, 'auth') });
     }
   };
 
   const handleSignUp = async () => {
     // Validation
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both email and password');
+      showAlert({ title: 'Error', message: 'Please enter both email and password' });
       return;
     }
 
     if (!validateEmail(email.trim())) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      showAlert({ title: 'Error', message: 'Please enter a valid email address' });
       return;
     }
 
     if (!validatePassword(password)) {
-      Alert.alert(
-        'Password Requirements',
-        'Password must be at least 8 characters long and contain:\n• At least one uppercase letter\n• At least one lowercase letter\n• At least one number'
-      );
+      showAlert({
+        title: 'Password Requirements',
+        message: 'Password must be at least 8 characters long and contain:\n• At least one uppercase letter\n• At least one lowercase letter\n• At least one number',
+      });
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showAlert({ title: 'Error', message: 'Passwords do not match' });
       return;
     }
 
     if (!isAgeConfirmed) {
-      Alert.alert('Error', 'You must confirm that you are 18 years or older');
+      showAlert({ title: 'Error', message: 'You must confirm that you are 18 years or older' });
       return;
     }
 
     if (!isTermsAccepted) {
-      Alert.alert('Error', 'You must accept the Terms and Conditions to continue');
+      showAlert({ title: 'Error', message: 'You must accept the Terms and Conditions to continue' });
       return;
     }
 
@@ -121,10 +121,10 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
       const result = await signUp(email.trim(), password, name.trim() || null);
       
       if (result.success) {
-        Alert.alert(
-          'Verification Email Sent',
-          'Please check your email for a verification code to complete your registration.',
-          [
+        showAlert({
+          title: 'Verification Email Sent',
+          message: 'Please check your email for a verification code to complete your registration.',
+          buttons: [
             {
               text: 'OK',
               onPress: () => {
@@ -135,8 +135,8 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
                 }
               },
             },
-          ]
-        );
+          ],
+        });
       } else {
         // Check if error is "account already exists"
         const errorMessage = result.error || '';
@@ -145,7 +145,7 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
           await handleAccountExists(email);
         } else {
           // Other signup errors
-          Alert.alert('Sign Up Failed', getFriendlyErrorMessage(errorMessage, 'auth'));
+          showAlert({ title: 'Sign Up Failed', message: getFriendlyErrorMessage(errorMessage, 'auth') });
         }
       }
     } catch (error) {
@@ -156,7 +156,7 @@ const SignUpScreen = ({ onSignIn, onClose, onVerificationSent, onViewTerms, onVi
         await handleAccountExists(email);
       } else {
         // Other errors
-        Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
+        showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'auth') });
       }
     } finally {
       setIsLoading(false);

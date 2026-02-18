@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,26 +12,28 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { forgotPasswordStyles } from '../styles';
 
 const ForgotPasswordScreen = ({ onBack, onCodeSent }) => {
   const insets = useSafeAreaInsets();
+  const { showAlert } = useAlert();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { forgotPassword } = useAuth();
 
   const handleSendCode = async () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      showAlert({ title: 'Error', message: 'Please enter your email address' });
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      showAlert({ title: 'Error', message: 'Please enter a valid email address' });
       return;
     }
 
@@ -46,10 +47,10 @@ const ForgotPasswordScreen = ({ onBack, onCodeSent }) => {
           onCodeSent(email.trim());
         }
       } else {
-        Alert.alert('Error', getFriendlyErrorMessage(result.error, 'auth'));
+        showAlert({ title: 'Error', message: getFriendlyErrorMessage(result.error, 'auth') });
       }
     } catch (error) {
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'auth') });
     } finally {
       setIsLoading(false);
     }

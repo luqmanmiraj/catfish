@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, TouchableOpacity, ActivityIndicator, Alert, Modal, StyleSheet } from 'react-native';
+import { Text, View, TouchableOpacity, ActivityIndicator, Modal, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { profileStyles } from '../styles';
@@ -8,6 +8,7 @@ import * as RevenueCatService from '../services/revenueCatService';
 import * as SubscriptionApi from '../services/subscriptionApi';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { getFriendlyErrorMessage, isUserCancelledError } from '../utils/errorMessages';
 
 // Fallback prices when RevenueCat packages aren't loaded
@@ -21,6 +22,7 @@ const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
   const insets = useSafeAreaInsets();
   const { refreshSubscriptionStatus, scansRemaining } = useSubscription();
   const { accessToken, isAuthenticated } = useAuth();
+  const { showAlert } = useAlert();
 
   const [packagesByType, setPackagesByType] = useState({
     pack_15: null,
@@ -101,7 +103,7 @@ const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
       console.error('Purchase error:', error);
       const friendlyMessage = getFriendlyErrorMessage(error, 'purchase');
       if (friendlyMessage) {
-        Alert.alert('Purchase Failed', friendlyMessage);
+        showAlert({ title: 'Purchase Failed', message: friendlyMessage });
       }
     } finally {
       setPurchasingPack(null);

@@ -1,4 +1,4 @@
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import apiConfig from '../config/apiConfig';
 

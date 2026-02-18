@@ -11,11 +11,12 @@ import { logDeviceMetadata } from '../utils/deviceLogger';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import apiConfig from '../config/apiConfig';
 import LabelNoteModal from '../components/LabelNoteModal';
-import { Alert } from 'react-native';
+import { useAlert } from '../context/AlertContext';
 
 const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
   const insets = useSafeAreaInsets();
   const { accessToken, isAuthenticated } = useAuth();
+  const { showAlert } = useAlert();
   const [scanHistory, setScanHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -188,7 +189,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
 
   const handleLabelNoteSave = async (label, note) => {
     if (!editingScan || !accessToken) {
-      Alert.alert('Error', 'Unable to save. Please try again.');
+      showAlert({ title: 'Error', message: 'Unable to save. Please try again.' });
       setShowLabelNoteModal(false);
       setEditingScan(null);
       return;
@@ -203,7 +204,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
       await fetchScanHistory();
     } catch (error) {
       console.error('Error updating scan history:', error);
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'history'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'history') });
     }
   };
 
@@ -426,7 +427,8 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={[historyStyles.bottomNav, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[historyStyles.bottomNavContainer, { paddingBottom: insets.bottom }]}>
+        <View style={historyStyles.bottomNav}>
         <TouchableOpacity style={historyStyles.navItem} onPress={onScanClick}>
           <Svg width="24" height="24" viewBox="0 0 21 16" fill="none">
             <Path
@@ -474,6 +476,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
           </Svg>
           <Text style={historyStyles.navText}>Profile</Text>
         </TouchableOpacity>
+        </View>
       </View>
       
       <LabelNoteModal

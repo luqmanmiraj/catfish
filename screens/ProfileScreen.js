@@ -47,7 +47,8 @@ const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, o
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={[profileStyles.bottomNav, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[profileStyles.bottomNavContainer, { paddingBottom: insets.bottom }]}>
+        <View style={profileStyles.bottomNav}>
         <TouchableOpacity style={profileStyles.navItem} onPress={onScanClick}>
           <Svg width="24" height="24" viewBox="0 0 21 16" fill="none">
             <Path
@@ -95,6 +96,7 @@ const ProfileScreen = ({ onScanClick, onHistoryClick, onAboutClick, onUpgrade, o
           </Svg>
           <Text style={[profileStyles.navText, { color: colors.primary }]}>Profile</Text>
         </TouchableOpacity>
+        </View>
       </View>
       <StatusBar style="light" />
     </View>

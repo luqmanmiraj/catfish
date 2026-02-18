@@ -162,6 +162,20 @@ export const permissionStyles = StyleSheet.create({
   },
 });
 
+const bottomNavContainer = {
+  backgroundColor: colors.background.dark,
+};
+
+const bottomNavBase = {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  alignItems: 'center',
+  paddingVertical: 12,
+  paddingTop: 12,
+  borderTopWidth: 1,
+  borderTopColor: 'rgba(255, 255, 255, 0.1)',
+};
+
 export const scanStyles = StyleSheet.create({
   container: {
     flex: 1,
@@ -173,7 +187,7 @@ export const scanStyles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 0,
     backgroundColor: colors.background.dark,
   },
   headerLeft: {
@@ -211,7 +225,7 @@ export const scanStyles = StyleSheet.create({
   },
   homeButton: {
     marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 0,
     paddingTop: 8,
     paddingLeft: 8,
     paddingRight: 8,
@@ -364,15 +378,11 @@ export const scanStyles = StyleSheet.create({
     paddingHorizontal: 40,
     lineHeight: 24,
   },
+  bottomNavContainer: {
+    ...bottomNavContainer,
+  },
   bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: colors.background.dark,
+    ...bottomNavBase,
   },
   navItem: {
     alignItems: 'center',
@@ -512,15 +522,11 @@ export const historyStyles = StyleSheet.create({
     color: colors.accent.lightGreyBlue,
     // lineHeight: 20,
   },
+  bottomNavContainer: {
+    ...bottomNavContainer,
+  },
   bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: colors.background.dark,
+    ...bottomNavBase,
   },
   navItem: {
     alignItems: 'center',
@@ -688,15 +694,11 @@ export const aboutStyles = StyleSheet.create({
     paddingLeft: 20,
     paddingRight: 20,
   },
+  bottomNavContainer: {
+    ...bottomNavContainer,
+  },
   bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: colors.background.dark,
+    ...bottomNavBase,
   },
   navItem: {
     alignItems: 'center',
@@ -937,15 +939,11 @@ export const profileStyles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.white,
   },
+  bottomNavContainer: {
+    ...bottomNavContainer,
+  },
   bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: colors.background.dark,
+    ...bottomNavBase,
   },
   navItem: {
     alignItems: 'center',

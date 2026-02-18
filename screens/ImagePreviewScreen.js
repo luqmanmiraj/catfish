@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, Image, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Image, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Path } from 'react-native-svg';
 import colors from '../colors';
 import { imagePreviewStyles } from '../styles';
+import { useAlert } from '../context/AlertContext';
 
 const ImagePreviewScreen = ({ imageUri, onScan, onClose }) => {
   const insets = useSafeAreaInsets();
+  const { showAlert } = useAlert();
   const [isCropActive, setIsCropActive] = useState(false);
   const [croppedImageUri, setCroppedImageUri] = useState(null);
 
@@ -36,7 +38,7 @@ const ImagePreviewScreen = ({ imageUri, onScan, onClose }) => {
         // If user cancelled, do nothing - crop tool remains inactive
       } catch (error) {
         console.error('Error opening crop tool:', error);
-        Alert.alert('Error', 'Failed to open crop tool');
+        showAlert({ title: 'Error', message: 'Failed to open crop tool' });
       }
     } else {
       // Deactivate crop tool - revert to original image

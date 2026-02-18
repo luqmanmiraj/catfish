@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,12 +12,14 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import colors from '../colors';
 import { signInStyles } from '../styles';
 import PasswordInput from '../components/PasswordInput';
 
 const SignInScreen = ({ onSignUp, onForgotPassword, onClose, onSignInSuccess }) => {
   const insets = useSafeAreaInsets();
+  const { showAlert } = useAlert();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +27,7 @@ const SignInScreen = ({ onSignUp, onForgotPassword, onClose, onSignInSuccess }) 
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both email and password');
+      showAlert({ title: 'Error', message: 'Please enter both email and password' });
       return;
     }
 
@@ -35,33 +36,29 @@ const SignInScreen = ({ onSignUp, onForgotPassword, onClose, onSignInSuccess }) 
       const result = await signIn(email.trim(), password);
       
       if (result.success) {
-        // Sign in successful
         if (onSignInSuccess) {
-          // Use the success callback to handle navigation
           await onSignInSuccess();
         } else if (onClose) {
-          // Fallback to close if no success callback
           onClose();
         }
       } else {
         const errorMsg = result.error || '';
-        // Show user-friendly message for common auth errors
         if (errorMsg.toLowerCase().includes('incorrect') || errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('not authorized')) {
-          Alert.alert('Sign In Failed', 'Incorrect email or password. Please try again.');
+          showAlert({ title: 'Sign In Failed', message: 'Incorrect email or password. Please try again.' });
         } else if (errorMsg.toLowerCase().includes('user does not exist') || errorMsg.toLowerCase().includes('not found')) {
-          Alert.alert('Sign In Failed', 'No account found with this email. Please sign up first.');
+          showAlert({ title: 'Sign In Failed', message: 'No account found with this email. Please sign up first.' });
         } else {
-          Alert.alert('Sign In Failed', errorMsg || 'Please check your credentials and try again.');
+          showAlert({ title: 'Sign In Failed', message: errorMsg || 'Please check your credentials and try again.' });
         }
       }
     } catch (error) {
       const errorMsg = error.message || '';
       if (errorMsg.toLowerCase().includes('incorrect') || errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('not authorized')) {
-        Alert.alert('Sign In Failed', 'Incorrect email or password. Please try again.');
+        showAlert({ title: 'Sign In Failed', message: 'Incorrect email or password. Please try again.' });
       } else if (errorMsg.toLowerCase().includes('network') || errorMsg.toLowerCase().includes('fetch')) {
-        Alert.alert('Connection Error', 'Please check your internet connection and try again.');
+        showAlert({ title: 'Connection Error', message: 'Please check your internet connection and try again.' });
       } else {
-        Alert.alert('Sign In Failed', 'An unexpected error occurred. Please try again.');
+        showAlert({ title: 'Sign In Failed', message: 'An unexpected error occurred. Please try again.' });
       }
     } finally {
       setIsLoading(false);

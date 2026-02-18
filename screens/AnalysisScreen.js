@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, Image, Text, Animated, Alert } from 'react-native';
+import { View, Image, Text, Animated } from 'react-native';
 import { File } from 'expo-file-system/next';
 import { analysisStyles } from '../styles';
 import colors from '../colors';
@@ -8,11 +8,13 @@ import apiConfig from '../config/apiConfig';
 import { logDeviceMetadata, getDeviceId } from '../utils/deviceLogger';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const AnalysisScreen = ({ imageUri, onComplete }) => {
   const insets = useSafeAreaInsets();
   const { accessToken } = useAuth();
+  const { showAlert } = useAlert();
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState(
     'Preparing image for analysis...'
@@ -203,7 +205,7 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
         // Show only a friendly popup — no raw error in the status text
         setStatusMessage('');
         const friendlyMessage = getFriendlyErrorMessage(error, 'analysis');
-        Alert.alert('Scan Failed', friendlyMessage, [{ text: 'OK' }]);
+        showAlert({ title: 'Scan Failed', message: friendlyMessage });
 
         // Complete the progress so user can go back / retry
         Animated.timing(progressAnim, {

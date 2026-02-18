@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { resetPasswordStyles } from '../styles';
@@ -20,6 +20,7 @@ import PasswordInput from '../components/PasswordInput';
 
 const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
   const insets = useSafeAreaInsets();
+  const { showAlert } = useAlert();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -74,22 +75,22 @@ const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
     const verificationCode = code.join('');
     
     if (verificationCode.length !== 6) {
-      Alert.alert('Error', 'Please enter the complete 6-digit verification code');
+      showAlert({ title: 'Error', message: 'Please enter the complete 6-digit verification code' });
       return;
     }
 
     if (!newPassword.trim()) {
-      Alert.alert('Error', 'Please enter a new password');
+      showAlert({ title: 'Error', message: 'Please enter a new password' });
       return;
     }
 
     if (newPassword.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters long');
+      showAlert({ title: 'Error', message: 'Password must be at least 8 characters long' });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showAlert({ title: 'Error', message: 'Passwords do not match' });
       return;
     }
 
@@ -99,10 +100,10 @@ const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
     const hasNumber = /[0-9]/.test(newPassword);
 
     if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-      Alert.alert(
-        'Invalid Password',
-        'Password must contain at least one uppercase letter, one lowercase letter, and one number.'
-      );
+      showAlert({
+        title: 'Invalid Password',
+        message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number.',
+      });
       return;
     }
 
@@ -111,7 +112,7 @@ const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
       const result = await confirmForgotPassword(email, verificationCode, newPassword);
       
       if (result.success) {
-        Alert.alert('Success', 'Your password has been reset successfully! You can now sign in with your new password.', [
+        showAlert({ title: 'Success', message: 'Your password has been reset successfully! You can now sign in with your new password.', buttons: [
           {
             text: 'OK',
             onPress: () => {
@@ -122,12 +123,12 @@ const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
               }
             },
           },
-        ]);
+        ] });
       } else {
-        Alert.alert('Reset Failed', getFriendlyErrorMessage(result.error, 'auth'));
+        showAlert({ title: 'Reset Failed', message: getFriendlyErrorMessage(result.error, 'auth') });
       }
     } catch (error) {
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'auth') });
     } finally {
       setIsLoading(false);
     }
@@ -139,14 +140,14 @@ const ResetPasswordScreen = ({ email, onBack, onPasswordReset }) => {
       const result = await forgotPassword(email);
       
       if (result.success) {
-        Alert.alert('Code Sent', 'A new password reset code has been sent to your email.');
+        showAlert({ title: 'Code Sent', message: 'A new password reset code has been sent to your email.' });
         setCode(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else {
-        Alert.alert('Error', getFriendlyErrorMessage(result.error, 'auth'));
+        showAlert({ title: 'Error', message: getFriendlyErrorMessage(result.error, 'auth') });
       }
     } catch (error) {
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'auth') });
     } finally {
       setIsResending(false);
     }

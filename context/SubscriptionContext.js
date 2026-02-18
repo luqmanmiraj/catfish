@@ -111,6 +111,7 @@ export function SubscriptionProvider({ children }) {
           setScanCount(0);
           setScanLimit(Infinity);
           setIsPro(false);
+          return { scansRemaining: effectiveScans, tokenBalance: balance };
         } catch (backendError) {
           console.warn('Error fetching backend token balance:', backendError);
           // Set defaults on error
@@ -119,6 +120,7 @@ export function SubscriptionProvider({ children }) {
           setScanCount(0);
           setScanLimit(Infinity);
           setIsPro(false);
+          return { scansRemaining: 0, tokenBalance: 0 };
         }
       } else {
         // Not authenticated, set defaults
@@ -127,6 +129,7 @@ export function SubscriptionProvider({ children }) {
         setScanCount(0);
         setScanLimit(Infinity);
         setIsPro(false);
+        return { scansRemaining: 0, tokenBalance: 0 };
       }
     } catch (error) {
       console.error('Error refreshing token balance:', error);
@@ -136,6 +139,7 @@ export function SubscriptionProvider({ children }) {
       setScanCount(0);
       setScanLimit(Infinity);
       setIsPro(false);
+      return { scansRemaining: 0, tokenBalance: 0 };
     } finally {
       setIsLoading(false);
     }

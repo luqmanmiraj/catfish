@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity, Alert, ActivityIndicator, Share, Platform, Linking, Image, Dimensions } from 'react-native';
+import { Text, View, TouchableOpacity, ActivityIndicator, Share, Platform, Linking, Image, Dimensions } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
@@ -30,7 +31,6 @@ import ScanScreen from './screens/ScanScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import AboutScreen from './screens/AboutScreen';
 import ProfileScreen from './screens/ProfileScreen';
-import CameraScanScreen from './screens/CameraScanScreen';
 import AnalysisScreen from './screens/AnalysisScreen';
 import ResultsScreen from './screens/ResultsScreen';
 import RevenueCatPaywallScreen from './components/RevenueCatPaywallScreen';
@@ -44,8 +44,10 @@ import { getFriendlyErrorMessage } from './utils/errorMessages';
 import styles from './styles';
 import colors from './colors';
 import ErrorBoundary from './components/ErrorBoundary';
+import { AlertProvider, useAlert } from './context/AlertContext';
 
 function AppContent() {
+  const { showAlert } = useAlert();
   const insets = useSafeAreaInsets();
   const { isAuthenticated, isLoading, signOut, deleteAccount, user, guestSignUp, accessToken } = useAuth();
   const { 
@@ -76,7 +78,7 @@ function AppContent() {
   const [showHistoryScreen, setShowHistoryScreen] = useState(false);
   const [showAboutScreen, setShowAboutScreen] = useState(false);
   const [showProfileScreen, setShowProfileScreen] = useState(false);
-  const [showCameraScan, setShowCameraScan] = useState(false);
+  
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState(null);
@@ -92,13 +94,14 @@ function AppContent() {
   const [showLandingScreen, setShowLandingScreen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [tokenBalanceBeforeScan, setTokenBalanceBeforeScan] = useState(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
 
 
   // Check if user is authenticated and RevenueCat is not configured
   // If so, show scan screen automatically on app start
   useEffect(() => {
     if (!isLoading && isAuthenticated && !showScanScreen && !showHistoryScreen && 
-        !showAboutScreen && !showProfileScreen && !showCameraScan && !showAnalysis && 
+        !showAboutScreen && !showProfileScreen && !showAnalysis && 
         !showResults && !showSignIn && !showSignUp && !showVerification && !showPermissions &&
         !showForgotPassword && !showResetPassword) {
       const isRevenueCatConfigured = RevenueCatService.isRevenueCatConfigured();
@@ -205,22 +208,23 @@ function AppContent() {
       const guestResult = await guestSignUp();
       
       if (!guestResult.success) {
-        Alert.alert(
-          'Guest Signup Failed',
-          guestResult.error || 'Unable to create guest account. Please try again.',
-          [{ text: 'OK' }]
-        );
+        showAlert({
+          title: 'Guest Signup Failed',
+          message: guestResult.error || 'Unable to create guest account. Please try again.',
+        });
         setIsCreatingGuest(false);
         return;
       }
       
-      // Notify user if this device has exhausted its free scans
       if (guestResult.deviceLimitReached) {
-        Alert.alert(
-          'Free Scans Used',
-          'This device has already used all free scans. Please purchase a scan pack to continue scanning.',
-          [{ text: 'OK' }]
-        );
+        const alreadyShown = await AsyncStorage.getItem('@catfish_freeScansAlertShown');
+        if (!alreadyShown) {
+          await AsyncStorage.setItem('@catfish_freeScansAlertShown', 'true');
+          showAlert({
+            title: 'Free Scans Used',
+            message: 'This device has already used all free scans. Please purchase a scan pack to continue scanning.',
+          });
+        }
       }
       
       console.log('Guest user created successfully');
@@ -249,11 +253,10 @@ function AppContent() {
       setShowPermissions(false);
     } catch (error) {
       console.error('Error in guest signup flow:', error);
-      Alert.alert(
-        'Error',
-        getFriendlyErrorMessage(error, 'auth'),
-        [{ text: 'OK' }]
-      );
+      showAlert({
+        title: 'Error',
+        message: getFriendlyErrorMessage(error, 'auth'),
+      });
     } finally {
       setIsCreatingGuest(false);
     }
@@ -261,7 +264,7 @@ function AppContent() {
 
   const handleLabelNoteSave = async (label, note) => {
     if (!accessToken) {
-      Alert.alert('Error', 'Unable to save. Please sign in to save scans to history.');
+      showAlert({ title: 'Error', message: 'Unable to save. Please sign in to save scans to history.' });
       setShowLabelNoteModal(false);
       return;
     }
@@ -272,7 +275,7 @@ function AppContent() {
         await updateScanHistory(accessToken, currentScanId, label, note);
         setShowLabelNoteModal(false);
         setCurrentScanId(null);
-        Alert.alert('Success', 'Scan updated successfully.');
+        showAlert({ title: 'Success', message: 'Scan updated successfully.' });
       } 
       // Otherwise, create new scan history entry (from "Save to History" button)
       else if (analysisResult && selectedImageUri) {
@@ -314,17 +317,17 @@ function AppContent() {
         setShowScanScreen(false);
         setShowAboutScreen(false);
         setShowProfileScreen(false);
-        setShowCameraScan(false);
+        
         setShowHistoryScreen(true);
         
-        Alert.alert('Success', 'Scan saved to history successfully.');
+        showAlert({ title: 'Success', message: 'Scan saved to history successfully.' });
       } else {
-        Alert.alert('Error', 'No scan data available to save.');
+        showAlert({ title: 'Error', message: 'No scan data available to save.' });
         setShowLabelNoteModal(false);
       }
     } catch (error) {
       console.error('Error saving scan history:', error);
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'history'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'history') });
     }
   };
 
@@ -335,7 +338,7 @@ function AppContent() {
 
   const handleSaveToHistory = () => {
     if (!isAuthenticated) {
-      Alert.alert('Sign In Required', 'Please sign in to save scans to history.');
+      showAlert({ title: 'Sign In Required', message: 'Please sign in to save scans to history.' });
       return;
     }
     // Open the label/note modal for saving
@@ -344,85 +347,74 @@ function AppContent() {
   };
 
   const handleTapToScan = async () => {
-    // Prevent multiple rapid taps
-    if (isScanning) {
+    if (isScanning || checkingEligibility) {
       console.log('⚠️ Scan already in progress, ignoring tap');
-      return;
+      return false;
     }
     
-    setIsScanning(true);
+    setCheckingEligibility(true);
     setTokenBalanceBeforeScan(scansRemaining);
-    console.log('🔒 Scan started - button locked');
     console.log('📊 Token balance at scan start:', scansRemaining);
     
     try {
-      // Check if user has tokens before allowing scan
       if (isAuthenticated) {
         try {
           const canScanResult = await checkCanScan();
           if (!canScanResult.canScan || canScanResult.scansRemaining <= 0) {
-            // Show device-specific message if device limit is the reason
             const title = canScanResult.deviceLimitReached 
               ? 'Device Scan Limit Reached' 
               : 'No Scans Remaining';
             const message = canScanResult.deviceLimitReached
               ? 'This device has used all its free scans. Purchase a scan pack to continue scanning.'
               : 'You have no scans left. Please purchase a scan pack to continue.';
-            Alert.alert(
+            showAlert({
               title,
               message,
-              [
+              buttons: [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Purchase Scans', onPress: () => setShowPaywall(true) },
-              ]
-            );
-            setIsScanning(false);
-            return;
+              ],
+            });
+            setCheckingEligibility(false);
+            return false;
           }
         } catch (error) {
           console.error('Error checking scan eligibility:', error);
-          // Continue with scan attempt if check fails
         }
       }
       
-      setShowCameraScan(true);
+      setCheckingEligibility(false);
+      return true;
     } catch (error) {
       console.error('Error in handleTapToScan:', error);
-      setIsScanning(false);
+      setCheckingEligibility(false);
+      return false;
     }
   };
 
-  const handleCloseCameraScan = () => {
-    console.log('📷 Camera closed WITHOUT selecting image');
-    console.log('📊 Token balance at camera close:', scansRemaining);
+  const handleScanCancelled = () => {
+    console.log('📷 Image picker dismissed WITHOUT selecting image');
+    console.log('📊 Token balance at dismiss:', scansRemaining);
     console.log('📊 Token balance when scan started:', tokenBalanceBeforeScan);
     console.log('⚠️ NO TOKEN SHOULD BE DEDUCTED - User cancelled');
     
-    // Verify token count didn't change (it shouldn't!)
     if (tokenBalanceBeforeScan !== null && scansRemaining !== tokenBalanceBeforeScan) {
-      console.error('🚨 ERROR: Token count changed during camera cancel!');
+      console.error('🚨 ERROR: Token count changed during cancel!');
       console.error('  Expected:', tokenBalanceBeforeScan);
       console.error('  Actual:', scansRemaining);
       console.error('  Difference:', tokenBalanceBeforeScan - scansRemaining);
       
-      // This shouldn't happen - alert user if in development
       if (__DEV__) {
-        Alert.alert(
-          'Debug: Token Count Changed',
-          `Tokens changed from ${tokenBalanceBeforeScan} to ${scansRemaining} when canceling camera. This shouldn't happen!`
-        );
+        showAlert({
+          title: 'Debug: Token Count Changed',
+          message: `Tokens changed from ${tokenBalanceBeforeScan} to ${scansRemaining} when canceling. This shouldn't happen!`,
+        });
       }
     }
     
-    setShowCameraScan(false);
     setTokenBalanceBeforeScan(null);
-    
-    // Reset scanning state when camera is closed without selecting image
-    setTimeout(() => {
-      setIsScanning(false);
-      console.log('🔓 Scan button unlocked (camera closed)');
-      console.log('📊 Final token balance:', scansRemaining);
-    }, 500);
+    console.log('🔓 Scan button unlocked (picker dismissed)');
+    console.log('📊 Final token balance:', scansRemaining);
   };
 
   const handleImageSelected = (imageUri) => {
@@ -430,6 +422,8 @@ function AppContent() {
     console.log('📊 Token balance BEFORE analysis:', scansRemaining);
     console.log('⚠️ Token will be decremented by Lambda AFTER successful analysis');
     
+    setIsScanning(true);
+    console.log('🔒 Scan started - button locked');
     setSelectedImageUri(imageUri);
     // Track photo selected event
     PostHogService.trackPhotoSelected({
@@ -440,7 +434,6 @@ function AppContent() {
       has_image: !!imageUri,
     });
     setAnalysisResult(null);
-    setShowCameraScan(false);
     setShowAnalysis(true);
     // Keep isScanning true until analysis completes
     console.log('📸 Image selected, starting analysis...');
@@ -517,7 +510,7 @@ function AppContent() {
     setShowHistoryScreen(false);
     setShowAboutScreen(false);
     setShowProfileScreen(false);
-    setShowCameraScan(false);
+    
   };
 
   const handleScanAgain = () => {
@@ -530,7 +523,7 @@ function AppContent() {
     setShowHistoryScreen(false);
     setShowAboutScreen(false);
     setShowProfileScreen(false);
-    setShowCameraScan(false);
+    
     setShowAnalysis(false);
   };
 
@@ -577,7 +570,7 @@ function AppContent() {
 
   const handleShare = async () => {
     if (!selectedImageUri) {
-      Alert.alert('Error', 'No image to share');
+      showAlert({ title: 'Error', message: 'No image to share' });
       return;
     }
 
@@ -664,7 +657,7 @@ function AppContent() {
             }
           } catch (shareError) {
             console.error('Sharing failed:', shareError);
-            Alert.alert('Error', 'Unable to share. Please try again.');
+            showAlert({ title: 'Error', message: 'Unable to share. Please try again.' });
           }
           return;
         }
@@ -695,14 +688,14 @@ function AppContent() {
       
       // If sharing failed, provide fallback message
       if (error.message && !error.message.includes('cancelled') && !error.message.includes('User cancelled')) {
-        Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
+        showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'general') });
       }
     }
   };
 
   const handleSave = async () => {
     if (!selectedImageUri) {
-      Alert.alert('Error', 'No image to save');
+      showAlert({ title: 'Error', message: 'No image to save' });
       return;
     }
 
@@ -712,11 +705,10 @@ function AppContent() {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       
       if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Please grant permission to save files to your device.',
-          [{ text: 'OK' }]
-        );
+        showAlert({
+          title: 'Permission Required',
+          message: 'Please grant permission to save files to your device.',
+        });
         return;
       }
 
@@ -925,10 +917,10 @@ function AppContent() {
         console.log('Could not add to album, but PDF was saved:', albumError);
       }
 
-      Alert.alert('Success', 'PDF report saved to your device!');
+      showAlert({ title: 'Success', message: 'PDF report saved to your device!' });
     } catch (error) {
       console.error('Error saving PDF:', error);
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'general') });
     }
   };
 
@@ -960,7 +952,7 @@ function AppContent() {
       await refreshSubscriptionStatus();
     } catch (error) {
       console.error('Error presenting customer center:', error);
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'purchase'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'purchase') });
     }
   };
 
@@ -995,11 +987,11 @@ function AppContent() {
       if (supported) {
         await Linking.openURL(videoUrl);
       } else {
-        Alert.alert('Error', 'Cannot open video URL');
+        showAlert({ title: 'Error', message: 'Cannot open video URL' });
       }
     } catch (error) {
       console.error('Error opening video:', error);
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'general') });
     }
   };
 
@@ -1010,7 +1002,7 @@ function AppContent() {
     setShowHistoryScreen(false);
     setShowAboutScreen(false);
     setShowProfileScreen(false);
-    setShowCameraScan(false);
+    
     setShowAnalysis(false);
     setShowResults(false);
     setShowSignIn(false);
@@ -1032,7 +1024,7 @@ function AppContent() {
   };
 
   const handleLogOut = async () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+    showAlert({ title: 'Log Out', message: 'Are you sure you want to log out?', buttons: [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Log Out',
@@ -1044,11 +1036,11 @@ function AppContent() {
           setShowPermissions(true);
         },
       },
-    ]);
+    ] });
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert('Delete Account', 'Are you sure you want to delete your account? This action cannot be undone.', [
+    showAlert({ title: 'Delete Account', message: 'Are you sure you want to delete your account? This action cannot be undone.', buttons: [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -1061,14 +1053,14 @@ function AppContent() {
               setShowScanScreen(false);
               setShowPermissions(true);
             } else {
-              Alert.alert('Error', result.error || 'Failed to delete account. Please try again.');
+              showAlert({ title: 'Error', message: result.error || 'Failed to delete account. Please try again.' });
             }
           } catch (error) {
-            Alert.alert('Error', 'Failed to delete account. Please try again.');
+            showAlert({ title: 'Error', message: 'Failed to delete account. Please try again.' });
           }
         },
       },
-    ]);
+    ] });
   };
 
   const renderContent = () => {
@@ -1324,16 +1316,6 @@ function AppContent() {
       );
     }
 
-    if (showCameraScan) {
-      return (
-        <CameraScanScreen
-          onClose={handleCloseCameraScan}
-          onImageSelected={handleImageSelected}
-          onUpgrade={handleUpgrade}
-        />
-      );
-    }
-
     if (showProfileScreen) {
       return (
         <ProfileScreen
@@ -1384,6 +1366,8 @@ function AppContent() {
           onWatchVideo={handleWatchVideo}
           onHomeClick={handleHomeClick}
           isScanning={isScanning}
+          onImageSelected={handleImageSelected}
+          onScanCancelled={handleScanCancelled}
         />
       );
     }
@@ -1419,6 +1403,8 @@ function AppContent() {
           onWatchVideo={handleWatchVideo}
           onHomeClick={handleHomeClick}
           isScanning={isScanning}
+          onImageSelected={handleImageSelected}
+          onScanCancelled={handleScanCancelled}
         />
       );
     }
@@ -1442,7 +1428,7 @@ function AppContent() {
             
           </View>
         </View>
-        <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 35) }]}>
+        <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 48) }]}>
           <View style={{ width: '100%', maxWidth: 345, alignItems: 'center' }}>
             {isAuthenticated ? (
               // If user is logged in, show "Continue to App" button
@@ -1451,7 +1437,7 @@ function AppContent() {
                   setShowLandingScreen(false); 
                   setShowScanScreen(true); 
                 }} 
-                style={{ width: '100%' }} 
+                style={{ marginBottom: 12, width: '100%' }} 
               />
             ) : (
               // If user is NOT logged in, show sign up/sign in/guest options
@@ -1461,7 +1447,7 @@ function AppContent() {
                 <ContinueAsGuestButton 
                   onPress={() => { setShowLandingScreen(false); handleContinueAsGuest(); }} 
                   isLoading={isCreatingGuest}
-                  style={{ width: '100%' }} 
+                  style={{ marginBottom: 12, width: '100%' }} 
                 />
               </>
             )}
@@ -1546,11 +1532,13 @@ export default function App() {
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
-        <AuthProvider>
-          <SubscriptionProvider>
-            <AppContent />
-          </SubscriptionProvider>
-        </AuthProvider>
+        <AlertProvider>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <AppContent />
+            </SubscriptionProvider>
+          </AuthProvider>
+        </AlertProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
   );

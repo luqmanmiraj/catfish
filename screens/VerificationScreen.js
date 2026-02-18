@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,12 +12,14 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import colors from '../colors';
 import { verificationStyles } from '../styles';
 
 const VerificationScreen = ({ email, onVerified, onClose, onResendCode }) => {
   const insets = useSafeAreaInsets();
+  const { showAlert } = useAlert();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -65,7 +66,7 @@ const VerificationScreen = ({ email, onVerified, onClose, onResendCode }) => {
     const verificationCode = code.join('');
     
     if (verificationCode.length !== 6) {
-      Alert.alert('Error', 'Please enter the complete 6-digit verification code');
+      showAlert({ title: 'Error', message: 'Please enter the complete 6-digit verification code' });
       return;
     }
 
@@ -74,7 +75,7 @@ const VerificationScreen = ({ email, onVerified, onClose, onResendCode }) => {
       const result = await confirmSignUp(email, verificationCode);
       
       if (result.success) {
-        Alert.alert('Success', 'Your email has been verified! You can now sign in.', [
+        showAlert({ title: 'Success', message: 'Your email has been verified! You can now sign in.', buttons: [
           {
             text: 'OK',
             onPress: () => {
@@ -85,12 +86,12 @@ const VerificationScreen = ({ email, onVerified, onClose, onResendCode }) => {
               }
             },
           },
-        ]);
+        ] });
       } else {
-        Alert.alert('Verification Failed', getFriendlyErrorMessage(result.error, 'auth'));
+        showAlert({ title: 'Verification Failed', message: getFriendlyErrorMessage(result.error, 'auth') });
       }
     } catch (error) {
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'auth') });
     } finally {
       setIsLoading(false);
     }
@@ -102,14 +103,14 @@ const VerificationScreen = ({ email, onVerified, onClose, onResendCode }) => {
       const result = await resendConfirmationCode(email);
       
       if (result.success) {
-        Alert.alert('Code Sent', 'A new verification code has been sent to your email.');
+        showAlert({ title: 'Code Sent', message: 'A new verification code has been sent to your email.' });
         setCode(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       } else {
-        Alert.alert('Error', getFriendlyErrorMessage(result.error, 'auth'));
+        showAlert({ title: 'Error', message: getFriendlyErrorMessage(result.error, 'auth') });
       }
     } catch (error) {
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'auth'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'auth') });
     } finally {
       setIsResending(false);
     }

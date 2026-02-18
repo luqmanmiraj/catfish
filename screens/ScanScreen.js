@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, ScrollView, TouchableOpacity, Modal, StyleSheet, Alert } from 'react-native';
+import { Text, View, ScrollView, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path, G, Defs, LinearGradient as SvgLinearGradient, Stop, Filter, FeFlood, FeColorMatrix, FeMorphology, FeOffset, FeGaussianBlur, FeComposite, FeBlend } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import { scanStyles } from '../styles';
 import colors from '../colors';
 import { useSubscription } from '../context/SubscriptionContext';
+import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
+import { getFriendlyErrorMessage } from '../utils/errorMessages';
+import * as Analytics from '../services/analyticsService';
 
-const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onProfileClick, isAuthenticated, user, onHowItWorks, onWatchVideo, onHomeClick, isScanning = false }) => {
+const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onProfileClick, isAuthenticated, user, onHowItWorks, onWatchVideo, onHomeClick, isScanning = false, onImageSelected, onScanCancelled }) => {
   const insets = useSafeAreaInsets();
   const { scansRemaining } = useSubscription();
+  const { showAlert } = useAlert();
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [showImagePicker, setShowImagePicker] = useState(false);
 
   // Check if user is a guest
   const isGuest = user?.email?.includes('@temp.catfish.app') || user?.['custom:is_guest'] === 'true';
@@ -49,6 +56,53 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
     }
   };
   
+  const handleCameraIconPress = async () => {
+    if (onTapToScan) {
+      const eligible = await onTapToScan();
+      if (eligible) {
+        setShowImagePicker(true);
+      }
+    }
+  };
+
+  const openGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        try {
+          const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
+          await Analytics.trackPictureTaken({
+            user_id: userId,
+            source: 'gallery',
+          });
+        } catch (error) {
+          console.error('Error tracking picture taken event:', error);
+        }
+
+        setShowImagePicker(false);
+        if (onImageSelected) {
+          onImageSelected(result.assets[0].uri);
+        }
+      }
+    } catch (error) {
+      console.error('Error opening gallery:', error);
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'general') });
+    }
+  };
+
+  const handleDismissImagePicker = () => {
+    setShowImagePicker(false);
+    if (onScanCancelled) {
+      onScanCancelled();
+    }
+  };
+
   // Determine what to show in the header
   const getHeaderText = () => {
     if (isAuthenticated && userDisplayName) {
@@ -157,7 +211,7 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
             scanStyles.scanCircleContainer,
             isScanning && { opacity: 0.5 }
           ]}
-          onPress={onTapToScan}
+          onPress={handleCameraIconPress}
           activeOpacity={0.9}
           disabled={isScanning}
         >
@@ -241,15 +295,16 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
         </TouchableOpacity>
 
         <Text style={scanStyles.tapToScanText}>
-          {isScanning ? 'Scanning in Progress...' : 'Tap to Scan an Image of a Potential Date'}
+          Tap to Scan an Image of a Potential Date
         </Text>
         <Text style={scanStyles.descriptionText}>
-          {isScanning ? 'Please wait while we analyze your image' : 'Detect AI-generated images and protect against catfishing'}
+          Detect AI-generated images and protect against catfishing
         </Text>
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={[scanStyles.bottomNav, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[scanStyles.bottomNavContainer, { paddingBottom: insets.bottom }]}>
+        <View style={scanStyles.bottomNav}>
         <TouchableOpacity style={scanStyles.navItem}>
           <Svg width="24" height="24" viewBox="0 0 21 16" fill="none">
             <Path
@@ -297,8 +352,51 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
           </Svg>
           <Text style={scanStyles.navText}>Profile</Text>
         </TouchableOpacity>
+        </View>
       </View>
       <StatusBar style="light" />
+
+      {/* Image Picker Bottom Sheet */}
+      <Modal
+        visible={showImagePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={handleDismissImagePicker}
+      >
+        <View style={imagePickerStyles.overlay}>
+          <TouchableOpacity
+            style={imagePickerStyles.overlayTouchable}
+            activeOpacity={1}
+            onPress={handleDismissImagePicker}
+          />
+          <View style={[imagePickerStyles.bottomSheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+            <Text style={imagePickerStyles.title}>Choose Image</Text>
+            <Text style={imagePickerStyles.description}>Upload Image of a Potential Date</Text>
+
+            <TouchableOpacity
+              style={imagePickerStyles.uploadButton}
+              onPress={openGallery}
+              activeOpacity={0.8}
+            >
+              <Svg width="24" height="24" viewBox="0 0 20 16" fill="none" style={{ marginRight: 12 }}>
+                <Path
+                  d="M2.54834 14.7007C1.92855 14.7007 1.4637 14.5098 1.15381 14.1279C0.843913 13.7516 0.67513 13.1872 0.647461 12.4346L3.81006 9.5791C3.98161 9.41862 4.15592 9.30241 4.33301 9.23047C4.51009 9.15299 4.69271 9.11426 4.88086 9.11426C5.07454 9.11426 5.26546 9.15576 5.45361 9.23877C5.6473 9.31624 5.82992 9.43245 6.00146 9.5874L7.53711 10.9736L11.2891 7.62012C11.4827 7.4541 11.682 7.32959 11.8867 7.24658C12.0915 7.16357 12.3073 7.12207 12.5342 7.12207C12.7611 7.12207 12.9797 7.16634 13.1899 7.25488C13.4058 7.33789 13.605 7.46517 13.7876 7.63672L18.7183 12.2686C18.7183 13.0654 18.5301 13.6686 18.1538 14.0781C17.7775 14.4932 17.2131 14.7007 16.4604 14.7007H2.54834ZM6.18408 7.71973C5.82438 7.71973 5.49512 7.63395 5.19629 7.4624C4.90299 7.28532 4.66781 7.04736 4.49072 6.74854C4.31364 6.44971 4.2251 6.12044 4.2251 5.76074C4.2251 5.40658 4.31364 5.08008 4.49072 4.78125C4.66781 4.48242 4.90299 4.24447 5.19629 4.06738C5.49512 3.8903 5.82438 3.80176 6.18408 3.80176C6.54378 3.80176 6.87028 3.8903 7.16357 4.06738C7.45687 4.24447 7.69206 4.48242 7.86914 4.78125C8.04622 5.08008 8.13477 5.40658 8.13477 5.76074C8.13477 6.12044 8.04622 6.44971 7.86914 6.74854C7.69206 7.04736 7.45687 7.28532 7.16357 7.4624C6.87028 7.63395 6.54378 7.71973 6.18408 7.71973ZM2.60645 15.2817C1.73763 15.2817 1.08464 15.0659 0.647461 14.6343C0.21582 14.2082 0 13.569 0 12.7168V2.57324C0 1.71549 0.21582 1.07357 0.647461 0.647461C1.08464 0.21582 1.73763 0 2.60645 0H16.9668C17.8411 0 18.4941 0.21582 18.9258 0.647461C19.3574 1.0791 19.5732 1.72103 19.5732 2.57324V12.7168C19.5732 13.569 19.3574 14.2082 18.9258 14.6343C18.4941 15.0659 17.8411 15.2817 16.9668 15.2817H2.60645ZM2.62305 13.9453H16.9502C17.3597 13.9453 17.6751 13.8374 17.8965 13.6216C18.1234 13.4002 18.2368 13.0737 18.2368 12.6421V2.64795C18.2368 2.21631 18.1234 1.88981 17.8965 1.66846C17.6751 1.4471 17.3597 1.33643 16.9502 1.33643H2.62305C2.20801 1.33643 1.88981 1.4471 1.66846 1.66846C1.4471 1.88981 1.33643 2.21631 1.33643 2.64795V12.6421C1.33643 13.0737 1.4471 13.4002 1.66846 13.6216C1.88981 13.8374 2.20801 13.9453 2.62305 13.9453Z"
+                  fill="white"
+                />
+              </Svg>
+              <Text style={imagePickerStyles.uploadButtonText}>Upload Image</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={imagePickerStyles.cancelButton}
+              onPress={handleDismissImagePicker}
+              activeOpacity={0.7}
+            >
+              <Text style={imagePickerStyles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Welcome Modal for First-Time Visitors */}
       <Modal
@@ -358,6 +456,64 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
     </View>
   );
 };
+
+const imagePickerStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  overlayTouchable: {
+    flex: 1,
+  },
+  bottomSheet: {
+    backgroundColor: '#1E2F3A',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text.white,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  description: {
+    fontSize: 16,
+    color: colors.accent.lightGreyBlue,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+    paddingHorizontal: 20,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A3A4A',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginBottom: 12,
+    width: '100%',
+  },
+  uploadButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text.white,
+  },
+  cancelButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelText: {
+    fontSize: 16,
+    color: colors.text.white,
+    textAlign: 'center',
+  },
+});
 
 const welcomeModalStyles = StyleSheet.create({
   container: {

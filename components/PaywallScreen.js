@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   ScrollView,
   Platform,
   Modal,
@@ -15,6 +14,7 @@ import Svg, { Circle, Path, G } from 'react-native-svg';
 import * as RevenueCatService from '../services/revenueCatService';
 import * as Analytics from '../services/analyticsService';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { getFriendlyErrorMessage, isUserCancelledError } from '../utils/errorMessages';
 import colors from '../colors';
 
@@ -27,6 +27,7 @@ const DEBUG_OFFERINGS_EMAIL = 'qr8edai@gmail.com';
  */
 export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore }) {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const [packages, setPackages] = useState([]);
   const [packagesByType, setPackagesByType] = useState({
     pack_15: null,
@@ -124,7 +125,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
       }
     } catch (error) {
       console.error('Error loading packages:', error);
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'purchase'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'purchase') });
     } finally {
       if (!tryRevenueCatPaywallFirst) {
         setLoading(false);
@@ -159,17 +160,17 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
         console.error('Error tracking purchase completed event:', error);
       }
       
-      Alert.alert('Purchase Complete', 'Your scan pack has been added to your account!', [
+      showAlert({ title: 'Purchase Complete', message: 'Your scan pack has been added to your account!', buttons: [
         { text: 'OK', onPress: () => {
           onPurchaseSuccess?.();
           onClose?.();
         }},
-      ]);
+      ] });
     } catch (error) {
       console.error('Purchase error:', error);
       if (isUserCancelledError(error)) return;
       const friendlyMessage = getFriendlyErrorMessage(error, 'purchase');
-      if (friendlyMessage) Alert.alert('Purchase Failed', friendlyMessage);
+      if (friendlyMessage) showAlert({ title: 'Purchase Failed', message: friendlyMessage });
     } finally {
       setPurchasing(false);
     }
@@ -177,18 +178,17 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
 
   const handlePurchase = async (pkg) => {
     if (!pkg) {
-      Alert.alert('Error', 'Please select a scan pack');
+      showAlert({ title: 'Error', message: 'Please select a scan pack' });
       return;
     }
 
     // Handle fallback package selection (when RevenueCat packages aren't loaded)
     if (typeof pkg === 'string' && pkg.startsWith('fallback_')) {
       const scanCount = parseInt(pkg.replace('fallback_', ''), 10);
-      Alert.alert(
-        'Package Selected',
-        `You selected ${scanCount} scans. Please ensure RevenueCat is configured to complete the purchase.`,
-        [{ text: 'OK' }]
-      );
+      showAlert({
+        title: 'Package Selected',
+        message: `You selected ${scanCount} scans. Please ensure RevenueCat is configured to complete the purchase.`,
+      });
       return;
     }
 
@@ -261,12 +261,12 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
                        result.entitlements.active[RevenueCatService.TEKJIN_PRO_ENTITLEMENT];
         
         if (hasPro) {
-          Alert.alert('Success', 'Welcome to Catfish Pro!', [
+          showAlert({ title: 'Success', message: 'Welcome to Catfish Pro!', buttons: [
             { text: 'OK', onPress: () => {
               onPurchaseSuccess?.();
               onClose?.();
             }},
-          ]);
+          ] });
         } else {
           onPurchaseSuccess?.();
           onClose?.();
@@ -275,7 +275,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
     } catch (error) {
       console.error('Paywall error:', error);
       if (!isUserCancelledError(error)) {
-        Alert.alert('Error', getFriendlyErrorMessage(error, 'purchase'));
+        showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'purchase') });
       }
     } finally {
       setPurchasing(false);
@@ -292,19 +292,19 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
                         customerInfo.entitlements.active[RevenueCatService.TEKJIN_PRO_ENTITLEMENT];
         
         if (hasPro) {
-          Alert.alert('Success', 'Your purchases have been restored!', [
+          showAlert({ title: 'Success', message: 'Your purchases have been restored!', buttons: [
             { text: 'OK', onPress: () => {
               onPurchaseSuccess?.();
               onClose?.();
             }},
-          ]);
+          ] });
         } else {
-          Alert.alert('No Purchases Found', 'We couldn\'t find any purchases to restore.');
+          showAlert({ title: 'No Purchases Found', message: 'We couldn\'t find any purchases to restore.' });
         }
       }
     } catch (error) {
       console.error('Restore error:', error);
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'purchase'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'purchase') });
     } finally {
       setPurchasing(false);
     }

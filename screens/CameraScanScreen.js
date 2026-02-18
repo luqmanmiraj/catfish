@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, TouchableOpacity, Text, Alert, ScrollView, Animated } from 'react-native';
+import { View, TouchableOpacity, Text, ScrollView, Animated } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
 import { cameraScanStyles } from '../styles';
@@ -9,10 +9,12 @@ import colors from '../colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import * as Analytics from '../services/analyticsService';
 
 const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
   const insets = useSafeAreaInsets();
+  const { showAlert } = useAlert();
   const { scansRemaining } = useSubscription();
   const { isAuthenticated, user } = useAuth();
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -52,7 +54,7 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
       }
     } catch (error) {
       console.error('Error opening camera:', error);
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'general') });
     }
   };
 
@@ -85,7 +87,7 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
       }
     } catch (error) {
       console.error('Error opening gallery:', error);
-      Alert.alert('Error', getFriendlyErrorMessage(error, 'general'));
+      showAlert({ title: 'Error', message: getFriendlyErrorMessage(error, 'general') });
     }
   };
 
