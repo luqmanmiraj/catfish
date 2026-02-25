@@ -413,6 +413,7 @@ export const historyStyles = StyleSheet.create({
   },
   titleContainer: {
     alignItems: 'flex-start',
+    width: '100%',
   },
   title: {
     fontSize: 32,
@@ -425,6 +426,20 @@ export const historyStyles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.white,
     textAlign: 'left',
+  },
+  metaRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  clearHistoryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  clearHistoryTextDisabled: {
+    opacity: 0.6,
   },
   content: {
     flex: 1,

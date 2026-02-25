@@ -242,3 +242,67 @@ export async function updateScanHistory(accessToken, scanId, label, note) {
   }
 }
 
+/**
+ * Delete a single scan history item
+ */
+export async function deleteScanHistory(accessToken, scanId) {
+  try {
+    const url = `${API_BASE_URL}/scan-history/${encodeURIComponent(scanId)}`;
+
+    // Log device info before request
+    await logDeviceMetadata(null, url);
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    // Support both JSON and 204 No Content success responses
+    const data = await response.json().catch(() => ({ success: true }));
+    return data;
+  } catch (error) {
+    console.error('Error deleting scan history item:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete all scan history items for the authenticated user
+ */
+export async function deleteAllScanHistory(accessToken) {
+  try {
+    const url = `${API_BASE_URL}/scan-history?all=true`;
+
+    // Log device info before request
+    await logDeviceMetadata(null, url);
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    // Support both JSON and 204 No Content success responses
+    const data = await response.json().catch(() => ({ success: true }));
+    return data;
+  } catch (error) {
+    console.error('Error deleting all scan history items:', error);
+    throw error;
+  }
+}
+

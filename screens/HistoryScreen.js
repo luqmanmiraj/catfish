@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity, Image, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { Text, View, TouchableOpacity, Image, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { historyStyles } from '../styles';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
-import { getScanHistory, updateScanHistory } from '../services/subscriptionApi';
+import { getScanHistory, updateScanHistory, deleteScanHistory, deleteAllScanHistory } from '../services/subscriptionApi';
 import { logDeviceMetadata } from '../utils/deviceLogger';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import apiConfig from '../config/apiConfig';
@@ -23,6 +23,8 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
   const [error, setError] = useState(null);
   const [showLabelNoteModal, setShowLabelNoteModal] = useState(false);
   const [editingScan, setEditingScan] = useState(null);
+  const [deletingScanId, setDeletingScanId] = useState(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const hasLoggedAccess = useRef(false);
 
   // Map API status to UI format
@@ -216,6 +218,90 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
     setEditingScan(null);
   };
 
+  const performDeleteScan = async (scan) => {
+    if (!scan?.scanId || !accessToken) {
+      showAlert({ title: 'Error', message: 'Unable to delete this scan. Please try again.' });
+      return;
+    }
+
+    if (deletingScanId || isDeletingAll) {
+      return;
+    }
+
+    try {
+      setDeletingScanId(scan.scanId);
+      await deleteScanHistory(accessToken, scan.scanId);
+
+      // Optimistic UI update, followed by fetch to ensure backend consistency
+      setScanHistory((prev) => prev.filter((item) => item.scanId !== scan.scanId));
+      await fetchScanHistory();
+    } catch (err) {
+      console.error('❌ Error deleting scan history item:', err);
+      showAlert({ title: 'Delete Failed', message: getFriendlyErrorMessage(err, 'history') });
+    } finally {
+      setDeletingScanId(null);
+    }
+  };
+
+  const handleDeleteScan = (scan) => {
+    Alert.alert(
+      'Delete Scan',
+      'Are you sure you want to delete this scan from your history? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            performDeleteScan(scan);
+          },
+        },
+      ]
+    );
+  };
+
+  const performDeleteAllScans = async () => {
+    if (!accessToken) {
+      showAlert({ title: 'Error', message: 'Unable to delete scans. Please sign in and try again.' });
+      return;
+    }
+
+    if (isDeletingAll || deletingScanId) {
+      return;
+    }
+
+    try {
+      setIsDeletingAll(true);
+      await deleteAllScanHistory(accessToken);
+
+      // Optimistic clear, followed by fetch to ensure backend consistency
+      setScanHistory([]);
+      await fetchScanHistory();
+    } catch (err) {
+      console.error('❌ Error deleting all scan history:', err);
+      showAlert({ title: 'Delete Failed', message: getFriendlyErrorMessage(err, 'history') });
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
+  const handleDeleteAllScans = () => {
+    Alert.alert(
+      'Delete All Scans',
+      'This will permanently delete all scan history items. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete All',
+          style: 'destructive',
+          onPress: () => {
+            performDeleteAllScans();
+          },
+        },
+      ]
+    );
+  };
+
   const renderStatusIcon = (iconType, color) => {
     switch (iconType) {
       case 'info':
@@ -280,9 +366,26 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
         </View>
         <View style={historyStyles.titleContainer}>
           <Text style={historyStyles.title}>Scan History</Text>
-          <Text style={historyStyles.subtitle}>
-            {loading ? 'Loading...' : `${scanHistory.length} scan${scanHistory.length !== 1 ? 's' : ''}`}
-          </Text>
+          <View style={historyStyles.metaRow}>
+            <Text style={historyStyles.subtitle}>
+              {loading ? 'Loading...' : `${scanHistory.length} scan${scanHistory.length !== 1 ? 's' : ''}`}
+            </Text>
+            {scanHistory.length > 0 && !loading && (
+              <TouchableOpacity
+                onPress={handleDeleteAllScans}
+                disabled={isDeletingAll || !!deletingScanId}
+              >
+                <Text
+                  style={[
+                    historyStyles.clearHistoryText,
+                    (isDeletingAll || !!deletingScanId) && historyStyles.clearHistoryTextDisabled,
+                  ]}
+                >
+                  {isDeletingAll ? 'Clearing...' : 'Clear History'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -377,37 +480,81 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
                       </Text>
                     )}
                   </View>
-                  <TouchableOpacity
-                    style={historyStyles.editButton}
-                    onPress={() => handleEditScan(scan)}
-                  >
-                    <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <Path
-                        d="M11.05 3.00002L4.20835 10.2417C3.95002 10.5167 3.70002 11.0584 3.65002 11.4334L3.34169 14.1334C3.23335 15.1084 3.93335 15.775 4.90002 15.6084L7.58335 15.15C7.95835 15.0834 8.48335 14.8084 8.74169 14.525L15.5834 7.28335C16.7667 6.03335 17.3 4.60835 15.4584 2.86668C13.625 1.14168 12.2334 1.75002 11.05 3.00002Z"
-                        stroke={colors.text.secondary}
-                        strokeWidth="1.5"
-                        strokeMiterlimit="10"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <Path
-                        d="M9.90833 4.20831C10.2667 6.50831 12.1333 8.26665 14.45 8.49998"
-                        stroke={colors.text.secondary}
-                        strokeWidth="1.5"
-                        strokeMiterlimit="10"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <Path
-                        d="M2.5 18.3333H17.5"
-                        stroke={colors.text.secondary}
-                        strokeWidth="1.5"
-                        strokeMiterlimit="10"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </Svg>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity
+                      style={historyStyles.editButton}
+                      onPress={() => handleEditScan(scan)}
+                      disabled={isDeletingAll || deletingScanId === scan.scanId}
+                    >
+                      <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <Path
+                          d="M11.05 3.00002L4.20835 10.2417C3.95002 10.5167 3.70002 11.0584 3.65002 11.4334L3.34169 14.1334C3.23335 15.1084 3.93335 15.775 4.90002 15.6084L7.58335 15.15C7.95835 15.0834 8.48335 14.8084 8.74169 14.525L15.5834 7.28335C16.7667 6.03335 17.3 4.60835 15.4584 2.86668C13.625 1.14168 12.2334 1.75002 11.05 3.00002Z"
+                          stroke={colors.text.secondary}
+                          strokeWidth="1.5"
+                          strokeMiterlimit="10"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <Path
+                          d="M9.90833 4.20831C10.2667 6.50831 12.1333 8.26665 14.45 8.49998"
+                          stroke={colors.text.secondary}
+                          strokeWidth="1.5"
+                          strokeMiterlimit="10"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <Path
+                          d="M2.5 18.3333H17.5"
+                          stroke={colors.text.secondary}
+                          strokeWidth="1.5"
+                          strokeMiterlimit="10"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[historyStyles.editButton, { marginLeft: 8 }]}
+                      onPress={() => handleDeleteScan(scan)}
+                      disabled={isDeletingAll || deletingScanId === scan.scanId}
+                      // Keep spacing explicit for broad React Native compatibility.
+                      // Some runtime targets may not support `gap`.
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      {deletingScanId === scan.scanId ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                          <Path
+                            d="M3 6H21"
+                            stroke={colors.primary}
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                          <Path
+                            d="M8 6V4C8 2.9 8.9 2 10 2H14C15.1 2 16 2.9 16 4V6"
+                            stroke={colors.primary}
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <Path
+                            d="M19 6L18.3 17.3C18.2 18.8 16.9 20 15.4 20H8.6C7.1 20 5.8 18.8 5.7 17.3L5 6"
+                            stroke={colors.primary}
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <Path
+                            d="M10 11V16M14 11V16"
+                            stroke={colors.primary}
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </Svg>
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <View style={historyStyles.detailsRow}>
                   <Text style={historyStyles.percentage}>{scan.percentage}</Text>
