@@ -35,7 +35,7 @@ import AnalysisScreen from './screens/AnalysisScreen';
 import ResultsScreen from './screens/ResultsScreen';
 import RevenueCatPaywallScreen from './components/RevenueCatPaywallScreen';
 import LabelNoteModal from './components/LabelNoteModal';
-import { getScanHistory, updateScanHistory, createScanHistory } from './services/subscriptionApi';
+import { getScanHistory, updateScanHistory, createScanHistory, getSubscriptionStatus } from './services/subscriptionApi';
 import * as Analytics from './services/analyticsService';
 import * as SentryService from './services/sentryService';
 import * as PostHogService from './services/posthogService';
@@ -217,13 +217,27 @@ function AppContent() {
       }
       
       if (guestResult.deviceLimitReached) {
-        const alreadyShown = await AsyncStorage.getItem('@catfish_freeScansAlertShown');
-        if (!alreadyShown) {
-          await AsyncStorage.setItem('@catfish_freeScansAlertShown', 'true');
-          showAlert({
-            title: 'Free Scans Used',
-            message: 'This device has already used all free scans. Please purchase a scan pack to continue scanning.',
-          });
+        const token = guestResult.data?.accessToken;
+        let hasScans = false;
+        if (token) {
+          try {
+            const backendStatus = await getSubscriptionStatus(token);
+            const balance = backendStatus.tokenBalance ?? backendStatus.scansRemaining ?? 0;
+            const deviceBlocked = backendStatus.deviceLimitReached && !backendStatus.hasPurchased;
+            hasScans = !deviceBlocked && balance > 0;
+          } catch (e) {
+            console.warn('Could not check subscription status after guest signup:', e);
+          }
+        }
+        if (!hasScans) {
+          const alreadyShown = await AsyncStorage.getItem('@catfish_freeScansAlertShown');
+          if (!alreadyShown) {
+            await AsyncStorage.setItem('@catfish_freeScansAlertShown', 'true');
+            showAlert({
+              title: 'Free Scans Used',
+              message: 'This device has already used all free scans. Please purchase a scan pack to continue scanning.',
+            });
+          }
         }
       }
       
@@ -283,9 +297,9 @@ function AppContent() {
         const scanData = {
           success: true,
           status: analysisResult.status || 'unknown',
-          deepfakeScore: analysisResult.deepfakeScore || analysisResult.confidence || null,
-          aiProbability: analysisResult.aiProbability || null,
-          humanProbability: analysisResult.humanProbability || null,
+          deepfakeScore: analysisResult.deepfakeScore ?? null,
+          aiProbability: analysisResult.aiProbability ?? null,
+          humanProbability: analysisResult.humanProbability ?? null,
           sightengineRequestId: analysisResult.sightengineRequestId || analysisResult.requestId || null,
           gowinstonRequestId: analysisResult.gowinstonRequestId || analysisResult.requestId || null,
           s3Url: analysisResult.s3Url || null,
@@ -460,9 +474,9 @@ function AppContent() {
           user_id: userId,
           scan_id: result.requestId || result.sightengineRequestId || result.gowinstonRequestId || null,
           result_status: result.status || 'unknown',
-          deepfake_score: result.deepfakeScore || result.confidence || null,
-          ai_probability: result.aiProbability || null,
-          human_probability: result.humanProbability || null,
+          deepfake_score: result.deepfakeScore ?? null,
+          ai_probability: result.aiProbability ?? null,
+          human_probability: result.humanProbability ?? null,
         });
         // Track in PostHog
         PostHogService.trackScanCompleted({

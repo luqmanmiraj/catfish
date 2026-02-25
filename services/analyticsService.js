@@ -94,10 +94,7 @@ async function sendToCAPI(eventName, eventParams = {}, eventId = null) {
   }
 }
 
-// Conversion events that should only be sent via CAPI (server-side) to avoid
-// double-counting, since Meta SDK's AppEventsLogger.logEvent() does not support
-// the event_id field needed for client+server deduplication.
-const CAPI_ONLY_EVENTS = ['PurchaseCompleted', 'TrialCompleted'];
+const CAPI_ONLY_EVENTS = [];
 
 /**
  * Track an event across all configured analytics platforms

@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "catfish",
+    "name": "Catfish Crasher: Photo Check",
     "slug": "catfish",
     "scheme": "com.anonymous.catfish",
-    "version": "1.0.12",
+    "version": "1.0.17",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "19",
+      "buildNumber": "20",
       "infoPlist": {
         "NSCameraUsageDescription": "Access for camera to pass photo/video identification",
         "NSPhotoLibraryUsageDescription": "Access to save analyzed images to your photo library",
@@ -33,7 +33,7 @@
       "bundleIdentifier": "com.anonymous.catfish"
     },
     "android": {
-      "versionCode": 10,
+      "versionCode": 12,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

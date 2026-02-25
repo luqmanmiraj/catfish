@@ -27,6 +27,9 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
 
   // Map API status to UI format
   const mapStatusToUI = (status, deepfakeScore) => {
+    if (deepfakeScore !== null && deepfakeScore > 1) {
+      deepfakeScore = deepfakeScore / 100;
+    }
     switch (status) {
       case 'authentic':
         return {

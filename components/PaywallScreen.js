@@ -13,6 +13,7 @@ import {
 import Svg, { Circle, Path, G } from 'react-native-svg';
 import * as RevenueCatService from '../services/revenueCatService';
 import * as Analytics from '../services/analyticsService';
+import * as MetaAnalytics from '../services/metaAnalytics';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import { getFriendlyErrorMessage, isUserCancelledError } from '../utils/errorMessages';
@@ -154,6 +155,13 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess, onRestore })
           product_id: productId,
           price: price,
           currency: currency,
+          transaction_id: transactionId,
+        });
+
+        await MetaAnalytics.trackPurchase({
+          value: price,
+          currency: currency,
+          product_id: productId,
           transaction_id: transactionId,
         });
       } catch (error) {
