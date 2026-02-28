@@ -248,20 +248,32 @@ export function SubscriptionProvider({ children }) {
       // Purchase through RevenueCat (consumable product)
       const customerInfo = await RevenueCatService.purchasePackage(packageToPurchase);
       
-      // Extract pack ID from package identifier
-      // Package identifiers should be: pack_15, pack_50, pack_100
-      const packId = packageToPurchase.identifier || packageToPurchase.product?.identifier;
+      // Resolve canonical backend pack ID from package/product identifiers.
+      const packageIdentifier = packageToPurchase.identifier || '';
+      const productIdentifier = packageToPurchase.product?.identifier || '';
+      const combinedIdentifier = `${packageIdentifier}|${productIdentifier}`.toLowerCase();
+      let packId = null;
+      if (combinedIdentifier.includes('pack_5') || combinedIdentifier.includes('pack5')) {
+        packId = 'pack_5';
+      } else if (combinedIdentifier.includes('pack_15') || combinedIdentifier.includes('pack15')) {
+        packId = 'pack_15';
+      } else if (combinedIdentifier.includes('pack_20') || combinedIdentifier.includes('pack20')) {
+        packId = 'pack_20';
+      } else if (combinedIdentifier.includes('pack_50') || combinedIdentifier.includes('pack50')) {
+        packId = 'pack_50';
+      } else if (combinedIdentifier.includes('pack_100') || combinedIdentifier.includes('pack100')) {
+        packId = 'pack_100';
+      }
       
       // Notify backend about the purchase to add tokens
-      if (isAuthenticated && accessToken && packId) {
-        try {
-          const transactionId = customerInfo.originalPurchaseDate || Date.now().toString();
-          await SubscriptionApi.purchaseTokenPack(accessToken, packId, transactionId);
-        } catch (backendError) {
-          console.error('Error notifying backend of token purchase:', backendError);
-          // Continue even if backend notification fails - RevenueCat purchase succeeded
-        }
+      if (!isAuthenticated || !accessToken) {
+        throw new Error('Purchase completed, but account is not authenticated to receive scans.');
       }
+      if (!packId) {
+        throw new Error(`Purchase completed, but pack mapping failed. package=${packageIdentifier}, product=${productIdentifier}`);
+      }
+      const transactionId = customerInfo.originalPurchaseDate || Date.now().toString();
+      await SubscriptionApi.purchaseTokenPack(accessToken, packId, transactionId);
       
       // Refresh token balance after purchase
       await refreshSubscriptionStatus();

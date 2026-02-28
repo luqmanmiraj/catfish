@@ -386,7 +386,7 @@ function AppContent() {
               message,
               buttons: [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Purchase Scans', onPress: () => setShowPaywall(true) },
+                { text: 'Purchase Scans', onPress: handleUpgrade },
               ],
             });
             setCheckingEligibility(false);
@@ -440,10 +440,10 @@ function AppContent() {
     console.log('🔒 Scan started - button locked');
     setSelectedImageUri(imageUri);
     // Track photo selected event
+    // Track photo selected event
     PostHogService.trackPhotoSelected({
       has_image: !!imageUri,
     });
-    // Track photo selected event
     PostHogService.trackPhotoSelected({
       has_image: !!imageUri,
     });
@@ -939,8 +939,12 @@ function AppContent() {
   };
 
   const handleUpgrade = () => {
-    // Show the PaywallScreen modal
-    setShowPaywall(true);
+    // Centralize purchases on Profile screen to avoid modal stacking issues.
+    setShowProfileScreen(true);
+    setShowScanScreen(false);
+    setShowHistoryScreen(false);
+    setShowAboutScreen(false);
+    setShowPaywall(false);
   };
 
   const handlePaywallClose = () => {

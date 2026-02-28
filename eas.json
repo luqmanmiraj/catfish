@@ -12,8 +12,12 @@
     },
     "simulator": {
       "distribution": "internal",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "SENTRY_ALLOW_FAILURE": "true"
+      },
       "ios": {
-        "simulator": true,
+        "simulator": false,
         "buildConfiguration": "Release"
       },
       "android": {
@@ -27,7 +31,7 @@
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "ios": {
-        "simulator": false,
+        "simulator": true,
         "buildConfiguration": "Release"
       },
       "android": {

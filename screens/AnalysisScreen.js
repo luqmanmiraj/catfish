@@ -11,6 +11,13 @@ import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const nowMs = () =>
+  (typeof performance !== 'undefined' && typeof performance.now === 'function')
+    ? performance.now()
+    : Date.now();
+
+const createClientRequestId = () => `scan_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
 const AnalysisScreen = ({ imageUri, onComplete }) => {
   const insets = useSafeAreaInsets();
   const { accessToken } = useAuth();
@@ -67,12 +74,16 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
       console.log('📸 Image URI:', imageUri?.substring(0, 50) + '...');
 
       try {
+        const clientRequestId = createClientRequestId();
+        const timingStart = nowMs();
         setStatusMessage('Preparing image for analysis...');
         
         // Convert local image URI to base64 using new File API
         // Lambda handler expects base64 data URL format
         const file = new File(imageUri);
+        const base64Start = nowMs();
         const base64Image = await file.base64();
+        const base64DurationMs = Math.round(nowMs() - base64Start);
         
         // Determine image format from URI
         const imageFormat = imageUri.toLowerCase().includes('.png') 
@@ -103,6 +114,7 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
         const headers = {
           'Content-Type': 'application/json',
           'X-Device-ID': deviceId,
+          'X-Client-Request-ID': clientRequestId,
         };
         
         // Add Authorization header with token if available
@@ -131,12 +143,13 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
         });
         
         console.log('🚀 Sending API request (should only happen ONCE per image)');
-        
+        const requestStart = nowMs();
         const response = await fetch(lambdaEndpoint, {
           method: 'POST',
           headers,
           body: JSON.stringify(requestBody),
         });
+        const requestDurationMs = Math.round(nowMs() - requestStart);
 
         isRequestInProgress = false;
         console.log('🔓 API request completed successfully - duplicate calls unblocked');
@@ -147,12 +160,25 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
         console.log('Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
         
         const json = await response.json();
+        const totalDurationMs = Math.round(nowMs() - timingStart);
         
         // Log full response in a clearly formatted way
         console.log('📥 SCAN API RESPONSE JSON:');
         console.log('==========================================');
         console.log(JSON.stringify(json, null, 2));
         console.log('==========================================');
+        console.log('📈 SCAN CLIENT TIMING:', JSON.stringify({
+          phase: 'scan.analyze',
+          clientRequestId,
+          requestId: json?.requestId || null,
+          imageDataLength: imageDataUrl.length,
+          imageFormat,
+          timingsMs: {
+            base64Encode: base64DurationMs,
+            networkRequest: requestDurationMs,
+            total: totalDurationMs,
+          },
+        }));
 
         if (isCancelled) {
           return;
@@ -187,6 +213,12 @@ const AnalysisScreen = ({ imageUri, onComplete }) => {
               ...(json.analysis || json),
               s3Url: json.s3Url || null,
               requestId: json.requestId || null,
+              clientRequestId,
+              clientTimingsMs: {
+                base64Encode: base64DurationMs,
+                networkRequest: requestDurationMs,
+                total: totalDurationMs,
+              },
               // Include token balance from Lambda response (already decremented by Lambda)
               tokenBalance: json.tokenBalance !== undefined ? json.tokenBalance : null,
               scansRemaining: json.scansRemaining !== undefined ? json.scansRemaining : (json.tokenBalance !== undefined ? json.tokenBalance : null),

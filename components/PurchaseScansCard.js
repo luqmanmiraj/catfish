@@ -75,23 +75,65 @@ const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
     try {
       setPurchasingPack(packKey);
 
+      // Purchases must be tied to an authenticated app user so backend can credit scans.
+      if (!isAuthenticated || !accessToken) {
+        showAlert({
+          title: 'Sign In Required',
+          message: 'Please sign in before purchasing scan packs so your scans can be added to your account.',
+        });
+        return;
+      }
+
       // 1. Trigger the native purchase sheet via RevenueCat
       const customerInfo = await RevenueCatService.purchasePackage(pkg);
 
       // 2. Notify backend about the purchase
-      const packId = pkg.identifier || pkg.product?.identifier;
+      // Use canonical backend pack IDs to avoid RC identifier format drift.
+      const packId = packKey;
       const transactionId = customerInfo.originalPurchaseDate || Date.now().toString();
 
-      if (isAuthenticated && accessToken && packId) {
-        try {
-          await SubscriptionApi.purchaseTokenPack(accessToken, packId, transactionId);
-        } catch (backendError) {
-          console.warn('Error notifying backend after purchase:', backendError?.message);
-        }
+      console.log('💳 PurchaseScansCard purchase sync:', {
+        packKey,
+        packId,
+        packageIdentifier: pkg.identifier || null,
+        productIdentifier: pkg.product?.identifier || null,
+        transactionId,
+      });
+
+      let purchaseSyncResult;
+      try {
+        purchaseSyncResult = await SubscriptionApi.purchaseTokenPack(accessToken, packId, transactionId);
+      } catch (backendError) {
+        // Do not silently succeed for consumables if backend sync fails.
+        console.error('❌ Backend token credit failed after RevenueCat purchase:', backendError);
+        showAlert({
+          title: 'Sync Failed',
+          message: 'Purchase completed, but scans were not added yet. Please contact support with your receipt.',
+        });
+        return;
       }
 
       // 3. Refresh token balance
-      await refreshSubscriptionStatus();
+      const refreshed = await refreshSubscriptionStatus();
+      const refreshedBalance = refreshed?.tokenBalance ?? 0;
+      const previousBalance = scansRemaining ?? 0;
+      const expectedIncrease = FALLBACK_PACKS.find((p) => p.key === packKey)?.scans || 0;
+
+      console.log('✅ PurchaseScansCard post-refresh balance check:', {
+        previousBalance,
+        refreshedBalance,
+        expectedIncrease,
+        purchaseSyncResult,
+      });
+
+      // Guard against false-positive success when backend did not actually credit balance.
+      if (expectedIncrease > 0 && refreshedBalance < previousBalance + expectedIncrease) {
+        showAlert({
+          title: 'Sync Pending',
+          message: 'Purchase succeeded, but your new scans are not reflected yet. Please pull to refresh or contact support if it persists.',
+        });
+        return;
+      }
 
       // 4. Show success modal
       const pack = FALLBACK_PACKS.find(p => p.key === packKey);

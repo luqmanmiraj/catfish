@@ -35,7 +35,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
     switch (status) {
       case 'authentic':
         return {
-          status: 'Like Real',
+          status: 'Likely Real',
           statusColor: colors.accent.green,
           statusIcon: 'check',
           percentage: deepfakeScore !== null ? `${Math.round((1 - deepfakeScore) * 100)}%` : 'N/A',
@@ -171,9 +171,6 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
     return () => {
       hasLoggedAccess.current = false;
       console.log('🧹 HistoryScreen unmounting');
-    };
-  }, [isAuthenticated, accessToken]);
-
   // Also fetch on mount (empty deps) to ensure fresh data when component remounts via key prop
   useEffect(() => {
     if (isAuthenticated && accessToken) {
@@ -182,6 +179,9 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps = run only on mount
+
+    };
+  }, [isAuthenticated, accessToken]);
 
   const onRefresh = () => {
     fetchScanHistory(true);
@@ -370,6 +370,9 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
             <Text style={historyStyles.subtitle}>
               {loading ? 'Loading...' : `${scanHistory.length} scan${scanHistory.length !== 1 ? 's' : ''}`}
             </Text>
+            {/* Clear History action intentionally disabled for now.
+                Keep code here for easy future re-enable. */}
+            {/*
             {scanHistory.length > 0 && !loading && (
               <TouchableOpacity
                 onPress={handleDeleteAllScans}
@@ -385,6 +388,7 @@ const HistoryScreen = ({ onScanClick, onAboutClick, onProfileClick }) => {
                 </Text>
               </TouchableOpacity>
             )}
+            */}
           </View>
         </View>
       </View>

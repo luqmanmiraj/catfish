@@ -12,6 +12,8 @@ import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import * as Analytics from '../services/analyticsService';
 
+const MIN_IMAGE_DIMENSION_PX = 270;
+
 const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
@@ -37,6 +39,18 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
       });
 
       if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        const width = asset.width || 0;
+        const height = asset.height || 0;
+
+        if (width < MIN_IMAGE_DIMENSION_PX || height < MIN_IMAGE_DIMENSION_PX) {
+          showAlert({
+            title: 'Image Too Small',
+            message: `Please upload an image that is at least ${MIN_IMAGE_DIMENSION_PX}x${MIN_IMAGE_DIMENSION_PX}px.`,
+          });
+          return;
+        }
+
         // Track picture taken event
         try {
           const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
@@ -49,7 +63,7 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
         }
         
         if (onImageSelected) {
-          onImageSelected(result.assets[0].uri);
+          onImageSelected(asset.uri);
         }
       }
     } catch (error) {
@@ -70,6 +84,18 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
       });
 
       if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        const width = asset.width || 0;
+        const height = asset.height || 0;
+
+        if (width < MIN_IMAGE_DIMENSION_PX || height < MIN_IMAGE_DIMENSION_PX) {
+          showAlert({
+            title: 'Image Too Small',
+            message: `Please upload an image that is at least ${MIN_IMAGE_DIMENSION_PX}x${MIN_IMAGE_DIMENSION_PX}px.`,
+          });
+          return;
+        }
+
         // Track picture taken event
         try {
           const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
@@ -82,7 +108,7 @@ const CameraScanScreen = ({ onClose, onImageSelected, onUpgrade }) => {
         }
         
         if (onImageSelected) {
-          onImageSelected(result.assets[0].uri);
+          onImageSelected(asset.uri);
         }
       }
     } catch (error) {

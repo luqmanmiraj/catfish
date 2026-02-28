@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, ScrollView, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { Text, View, ScrollView, TouchableOpacity, Modal, StyleSheet, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path, G, Defs, LinearGradient as SvgLinearGradient, Stop, Filter, FeFlood, FeColorMatrix, FeMorphology, FeOffset, FeGaussianBlur, FeComposite, FeBlend } from 'react-native-svg';
@@ -14,12 +14,15 @@ import { useAlert } from '../context/AlertContext';
 import { getFriendlyErrorMessage } from '../utils/errorMessages';
 import * as Analytics from '../services/analyticsService';
 
+const MIN_IMAGE_DIMENSION_PX = 270;
+
 const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onProfileClick, isAuthenticated, user, onHowItWorks, onWatchVideo, onHomeClick, isScanning = false, onImageSelected, onScanCancelled }) => {
   const insets = useSafeAreaInsets();
   const { scansRemaining } = useSubscription();
   const { showAlert } = useAlert();
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [pendingSizeAlert, setPendingSizeAlert] = useState(null);
 
   // Check if user is a guest
   const isGuest = user?.email?.includes('@temp.catfish.app') || user?.['custom:is_guest'] === 'true';
@@ -65,6 +68,24 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
     }
   };
 
+  const getAssetDimensions = async (asset) => {
+    if (asset?.width && asset?.height) {
+      return { width: asset.width, height: asset.height };
+    }
+
+    if (!asset?.uri) {
+      return { width: 0, height: 0 };
+    }
+
+    return new Promise((resolve) => {
+      Image.getSize(
+        asset.uri,
+        (width, height) => resolve({ width, height }),
+        () => resolve({ width: 0, height: 0 })
+      );
+    });
+  };
+
   const openGallery = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -75,6 +96,19 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
       });
 
       if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        const { width, height } = await getAssetDimensions(asset);
+
+        if (width < MIN_IMAGE_DIMENSION_PX || height < MIN_IMAGE_DIMENSION_PX) {
+          // Queue alert and close picker first; on iOS modals can fail if stacked.
+          setPendingSizeAlert({
+            title: 'Image Too Small',
+            message: `Please upload an image that is at least ${MIN_IMAGE_DIMENSION_PX}x${MIN_IMAGE_DIMENSION_PX}px.`,
+          });
+          setShowImagePicker(false);
+          return;
+        }
+
         try {
           const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
           await Analytics.trackPictureTaken({
@@ -87,7 +121,7 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
 
         setShowImagePicker(false);
         if (onImageSelected) {
-          onImageSelected(result.assets[0].uri);
+          onImageSelected(asset.uri);
         }
       }
     } catch (error) {
@@ -101,6 +135,15 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
     if (onScanCancelled) {
       onScanCancelled();
     }
+  };
+
+  const handleImagePickerDismiss = () => {
+    if (!pendingSizeAlert) {
+      return;
+    }
+
+    showAlert(pendingSizeAlert);
+    setPendingSizeAlert(null);
   };
 
   // Determine what to show in the header
@@ -362,6 +405,7 @@ const ScanScreen = ({ onTapToScan, onUpgrade, onHistoryClick, onAboutClick, onPr
         transparent
         animationType="fade"
         onRequestClose={handleDismissImagePicker}
+        onDismiss={handleImagePickerDismiss}
       >
         <View style={imagePickerStyles.overlay}>
           <TouchableOpacity
