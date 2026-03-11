@@ -5,6 +5,8 @@
 
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import * as Linking from 'expo-linking';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as MetaAnalytics from './metaAnalytics';
 import * as SingularAnalytics from './singularAnalytics';
 import apiConfig from '../config/apiConfig';
@@ -13,6 +15,127 @@ let isInitialized = false;
 let capiEndpoint = null;
 let advertiserTrackingEnabled = 0; // ATT consent: 1 = granted, 0 = denied
 let deviceInfo = {}; // Device info for CAPI app_data.extinfo
+let attributionContext = {};
+let linkingListener = null;
+
+const ATTRIBUTION_STORAGE_KEY = '@catfish:metaAttributionContext';
+
+function toStringOrNull(value) {
+  if (value === undefined || value === null) return null;
+  const normalized = String(value).trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function buildFbcFromFbclid(fbclid) {
+  const cleanFbclid = toStringOrNull(fbclid);
+  if (!cleanFbclid) return null;
+  // Meta format for fbc: fb.1.<creation_time>.<fbclid>
+  return `fb.1.${Date.now()}.${cleanFbclid}`;
+}
+
+function normalizeAttributionParams(rawParams = {}, sourceUrl = null) {
+  const params = {};
+  Object.keys(rawParams || {}).forEach((key) => {
+    params[key.toLowerCase()] = rawParams[key];
+  });
+
+  const utmCampaign = toStringOrNull(params.utm_campaign);
+  const campaignId =
+    toStringOrNull(params.campaign_id) ||
+    toStringOrNull(params.campaignid) ||
+    toStringOrNull(params.campaign) ||
+    utmCampaign;
+
+  const normalized = {
+    campaign_id: campaignId,
+    campaign_name: toStringOrNull(params.campaign_name) || utmCampaign,
+    adset_id: toStringOrNull(params.adset_id) || toStringOrNull(params.adsetid),
+    ad_id: toStringOrNull(params.ad_id) || toStringOrNull(params.adid),
+    utm_source: toStringOrNull(params.utm_source),
+    utm_medium: toStringOrNull(params.utm_medium),
+    utm_campaign: utmCampaign,
+    fbc: toStringOrNull(params.fbc) || buildFbcFromFbclid(params.fbclid),
+    fbp: toStringOrNull(params.fbp),
+    source_url: toStringOrNull(sourceUrl),
+    attribution_captured_at: new Date().toISOString(),
+  };
+
+  return Object.fromEntries(
+    Object.entries(normalized).filter(([, value]) => value !== null && value !== undefined)
+  );
+}
+
+async function loadStoredAttributionContext() {
+  try {
+    const raw = await AsyncStorage.getItem(ATTRIBUTION_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    console.warn('Failed to load attribution context:', error?.message || error);
+    return {};
+  }
+}
+
+async function persistAttributionContext(context) {
+  try {
+    await AsyncStorage.setItem(ATTRIBUTION_STORAGE_KEY, JSON.stringify(context));
+  } catch (error) {
+    console.warn('Failed to persist attribution context:', error?.message || error);
+  }
+}
+
+async function captureAttributionFromUrl(url) {
+  try {
+    if (!url) return;
+    const parsed = Linking.parse(url);
+    const normalized = normalizeAttributionParams(parsed?.queryParams || {}, url);
+    if (Object.keys(normalized).length === 0) return;
+
+    attributionContext = {
+      ...attributionContext,
+      ...normalized,
+    };
+    await persistAttributionContext(attributionContext);
+
+    if (__DEV__) {
+      console.log('Attribution context captured from URL:', {
+        campaign_id: attributionContext.campaign_id || null,
+        campaign_name: attributionContext.campaign_name || null,
+        adset_id: attributionContext.adset_id || null,
+        ad_id: attributionContext.ad_id || null,
+        has_fbc: !!attributionContext.fbc,
+        has_fbp: !!attributionContext.fbp,
+      });
+    }
+  } catch (error) {
+    console.warn('Failed to capture attribution from URL:', error?.message || error);
+  }
+}
+
+function enrichWithAttribution(eventParams = {}) {
+  const merged = {
+    ...attributionContext,
+    ...eventParams,
+  };
+
+  if (!merged.campaign_id && merged.utm_campaign) {
+    merged.campaign_id = merged.utm_campaign;
+  }
+
+  if (__DEV__ && (merged.campaign_id || merged.fbc || merged.fbp)) {
+    console.log('Attribution payload attached:', {
+      campaign_id: merged.campaign_id || null,
+      campaign_name: merged.campaign_name || null,
+      adset_id: merged.adset_id || null,
+      ad_id: merged.ad_id || null,
+      has_fbc: !!merged.fbc,
+      has_fbp: !!merged.fbp,
+    });
+  }
+
+  return merged;
+}
 
 /**
  * Initialize all analytics services
@@ -47,6 +170,24 @@ export async function initializeAnalytics(config = {}) {
     // Set up CAPI endpoint if Meta Pixel ID is configured
     if (apiConfig.META_PIXEL_ID) {
       capiEndpoint = `${apiConfig.API_BASE_URL}/meta/capi`;
+    }
+
+    // Restore existing attribution context and capture launch deep link params.
+    attributionContext = await loadStoredAttributionContext();
+    try {
+      const initialUrl = await Linking.getInitialURL();
+      if (initialUrl) {
+        await captureAttributionFromUrl(initialUrl);
+      }
+    } catch (error) {
+      console.warn('Failed to read initial URL for attribution:', error?.message || error);
+    }
+
+    // Capture attribution updates from runtime deep links.
+    if (!linkingListener && typeof Linking.addEventListener === 'function') {
+      linkingListener = Linking.addEventListener('url', (event) => {
+        captureAttributionFromUrl(event?.url);
+      });
     }
 
     isInitialized = true;
@@ -111,20 +252,21 @@ export async function trackEvent(eventName, eventParams = {}) {
   const eventId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${Math.random().toString(36).substring(2, 15)}`;
 
   const isCapiOnly = CAPI_ONLY_EVENTS.includes(eventName);
+  const enrichedEventParams = enrichWithAttribution(eventParams);
 
   try {
     // For conversion events, skip the Meta client-side SDK to avoid double-counting.
     // CAPI is the primary source of truth for these events.
     if (!isCapiOnly) {
       // Track in Meta SDK (client-side) for non-conversion events
-      await MetaAnalytics.trackEvent(eventName, { ...eventParams, _eventId: eventId });
+      await MetaAnalytics.trackEvent(eventName, { ...enrichedEventParams, _eventId: eventId });
     }
 
     // Send to CAPI (server-side) for better data quality — always fires
-    await sendToCAPI(eventName, eventParams, eventId);
+    await sendToCAPI(eventName, enrichedEventParams, eventId);
 
     // Track in Singular — always fires (Singular has its own deduplication)
-    await SingularAnalytics.trackEvent(eventName, eventParams);
+    await SingularAnalytics.trackEvent(eventName, enrichedEventParams);
   } catch (error) {
     console.error(`Error tracking event ${eventName}:`, error);
     // Don't throw - analytics failures shouldn't break the app

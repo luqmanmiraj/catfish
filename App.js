@@ -1440,7 +1440,7 @@ function AppContent() {
             <Text style={styles.welcomeText}>Welcome to Catfish</Text>
             <Text style={styles.taglineText}>Detect AI-Generated Images Instantly</Text>
             <Text style={styles.taglineTextExp1}>Upload a photo to see whether it’s verified, inconclusive, or fake
-            in secounds.”</Text>
+            in seconds.”</Text>
             <Text style={styles.taglineTextExp}>Before you invest your time, emotion or
             money- know if the photo is real.</Text>
             
