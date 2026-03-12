@@ -6,6 +6,7 @@ import { profileStyles } from '../styles';
 import colors from '../colors';
 import * as RevenueCatService from '../services/revenueCatService';
 import * as SubscriptionApi from '../services/subscriptionApi';
+import * as PurchaseAnalytics from '../services/purchaseAnalytics';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
@@ -21,7 +22,7 @@ const FALLBACK_PACKS = [
 const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
   const insets = useSafeAreaInsets();
   const { refreshSubscriptionStatus, scansRemaining } = useSubscription();
-  const { accessToken, isAuthenticated } = useAuth();
+  const { accessToken, isAuthenticated, user } = useAuth();
   const { showAlert } = useAlert();
 
   const [packagesByType, setPackagesByType] = useState({
@@ -140,6 +141,25 @@ const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
           message: 'Purchase succeeded, but your new scans are not reflected yet. Please pull to refresh or contact support if it persists.',
         });
         return;
+      }
+
+      // 4. Track conversion only after the full purchase+credit success checkpoint.
+      try {
+        const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
+        const productId = pkg.identifier || pkg.product?.identifier || packId;
+        const price = pkg.product?.price ?? 0;
+        const currency = pkg.product?.currencyCode || 'USD';
+
+        await PurchaseAnalytics.trackPurchaseSuccess({
+          userId,
+          productId,
+          packId,
+          price,
+          currency,
+          transactionId,
+        });
+      } catch (trackingError) {
+        console.error('Error tracking purchase analytics:', trackingError);
       }
 
       // 4. Show success modal
