@@ -52,12 +52,20 @@ config/             # API endpoints and third-party keys
 
 ## Screenshots
 
-![Screenshot 1](screenshots/2026-02-13%2017-34-29%20High%20Res%20Screenshot.png)
-![Screenshot 2](screenshots/2026-02-13%2017-34-54%20High%20Res%20Screenshot.png)
-![Screenshot 3](screenshots/2026-02-13%2017-35-21%20High%20Res%20Screenshot.png)
-![Screenshot 4](screenshots/2026-02-13%2017-36-46%20High%20Res%20Screenshot.png)
-![Screenshot 5](screenshots/2026-02-13%2017-36-54%20High%20Res%20Screenshot.png)
-![Screenshot 6](screenshots/2026-02-13%2017-37-29%20High%20Res%20Screenshot.png)
-![Screenshot 7](screenshots/2026-02-13%2017-37-37%20High%20Res%20Screenshot.png)
-![Screenshot 8](screenshots/2026-02-13%2017-41-26%20High%20Res%20Screenshot.png)
-![Screenshot 9](screenshots/2026-02-13%2017-41-46%20High%20Res%20Screenshot.png)
+<table>
+  <tr>
+    <td><img src="screenshots/2026-02-13%2017-34-29%20High%20Res%20Screenshot.png" width="220" alt="Screenshot 1" /></td>
+    <td><img src="screenshots/2026-02-13%2017-34-54%20High%20Res%20Screenshot.png" width="220" alt="Screenshot 2" /></td>
+    <td><img src="screenshots/2026-02-13%2017-35-21%20High%20Res%20Screenshot.png" width="220" alt="Screenshot 3" /></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/2026-02-13%2017-36-46%20High%20Res%20Screenshot.png" width="220" alt="Screenshot 4" /></td>
+    <td><img src="screenshots/2026-02-13%2017-36-54%20High%20Res%20Screenshot.png" width="220" alt="Screenshot 5" /></td>
+    <td><img src="screenshots/2026-02-13%2017-37-29%20High%20Res%20Screenshot.png" width="220" alt="Screenshot 6" /></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/2026-02-13%2017-37-37%20High%20Res%20Screenshot.png" width="220" alt="Screenshot 7" /></td>
+    <td><img src="screenshots/2026-02-13%2017-41-26%20High%20Res%20Screenshot.png" width="220" alt="Screenshot 8" /></td>
+    <td><img src="screenshots/2026-02-13%2017-41-46%20High%20Res%20Screenshot.png" width="220" alt="Screenshot 9" /></td>
+  </tr>
+</table>
