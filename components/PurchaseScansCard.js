@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Text, View, TouchableOpacity, ActivityIndicator, Modal, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { profileStyles } from '../styles';
 import colors from '../colors';
 import * as RevenueCatService from '../services/revenueCatService';
 import * as SubscriptionApi from '../services/subscriptionApi';
+import * as PurchaseAnalytics from '../services/purchaseAnalytics';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
@@ -21,7 +22,7 @@ const FALLBACK_PACKS = [
 const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
   const insets = useSafeAreaInsets();
   const { refreshSubscriptionStatus, scansRemaining } = useSubscription();
-  const { accessToken, isAuthenticated } = useAuth();
+  const { accessToken, isAuthenticated, user } = useAuth();
   const { showAlert } = useAlert();
 
   const [packagesByType, setPackagesByType] = useState({
@@ -33,6 +34,13 @@ const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
   const [purchasingPack, setPurchasingPack] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [purchasedPackScans, setPurchasedPackScans] = useState(0);
+
+  const packMetadataByKey = useMemo(() => {
+    return FALLBACK_PACKS.reduce((acc, pack) => {
+      acc[pack.key] = pack;
+      return acc;
+    }, {});
+  }, []);
 
   // Load RevenueCat packages on mount
   useEffect(() => {
@@ -135,6 +143,25 @@ const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
         return;
       }
 
+      // 4. Track conversion only after the full purchase+credit success checkpoint.
+      try {
+        const userId = user?.sub || user?.email || user?.['cognito:username'] || null;
+        const productId = pkg.identifier || pkg.product?.identifier || packId;
+        const price = pkg.product?.price ?? 0;
+        const currency = pkg.product?.currencyCode || 'USD';
+
+        await PurchaseAnalytics.trackPurchaseSuccess({
+          userId,
+          productId,
+          packId,
+          price,
+          currency,
+          transactionId,
+        });
+      } catch (trackingError) {
+        console.error('Error tracking purchase analytics:', trackingError);
+      }
+
       // 4. Show success modal
       const pack = FALLBACK_PACKS.find(p => p.key === packKey);
       setPurchasedPackScans(pack ? pack.scans : 0);
@@ -159,6 +186,60 @@ const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
 
   const isPurchasing = purchasingPack !== null;
 
+  const packageRows = useMemo(() => {
+    const dynamicRows = Object.entries(packagesByType)
+      .filter(([, pkg]) => !!pkg)
+      .map(([key, pkg]) => {
+        const fallback = packMetadataByKey[key] || null;
+        const scans = fallback?.scans || 0;
+        const numericPrice = typeof pkg?.product?.price === 'number' ? pkg.product.price : null;
+        const valueScore = numericPrice && numericPrice > 0 ? scans / numericPrice : null;
+
+        return {
+          key,
+          scans,
+          pkg,
+          displayPrice: RevenueCatService.getFormattedPrice(pkg),
+          fallbackPrice: fallback?.price || 'N/A',
+          numericPrice,
+          valueScore,
+        };
+      });
+
+    // If RevenueCat packages aren't available yet, keep fallback rows visible.
+    if (dynamicRows.length === 0) {
+      return FALLBACK_PACKS.map((pack) => ({
+        key: pack.key,
+        scans: pack.scans,
+        pkg: null,
+        displayPrice: pack.price,
+        fallbackPrice: pack.price,
+        numericPrice: null,
+        valueScore: null,
+      }));
+    }
+
+    return dynamicRows;
+  }, [packagesByType, packMetadataByKey]);
+
+  const bestValueKey = useMemo(() => {
+    const rankable = packageRows.filter((row) => typeof row.valueScore === 'number' && Number.isFinite(row.valueScore));
+    if (rankable.length === 0) return null;
+
+    const best = rankable.reduce((currentBest, row) => {
+      if (!currentBest) return row;
+      if (row.valueScore > currentBest.valueScore) return row;
+      if (row.valueScore < currentBest.valueScore) return currentBest;
+      // Tie-breaker: prefer higher scans, then lower absolute price.
+      if (row.scans > currentBest.scans) return row;
+      if (row.scans < currentBest.scans) return currentBest;
+      if ((row.numericPrice ?? Infinity) < (currentBest.numericPrice ?? Infinity)) return row;
+      return currentBest;
+    }, null);
+
+    return best?.key || null;
+  }, [packageRows]);
+
   const getDisplayPrice = (packKey) => {
     const pkg = packagesByType[packKey];
     if (pkg) {
@@ -173,30 +254,53 @@ const PurchaseScansCard = ({ onUpgrade, onPurchaseComplete }) => {
       <View style={profileStyles.upgradeCard}>
         <View style={profileStyles.pricingInfo}>
           <Text style={profileStyles.pricingTitle}>Get 5 free scans on signup</Text>
-          <View style={profileStyles.pricingPackages}>
-            {FALLBACK_PACKS.map(({ key, scans }) => (
-              <View key={key} style={profileStyles.pricingPackage}>
-                <Text style={profileStyles.packageScans}>{scans} scans</Text>
-                <Text style={profileStyles.packagePrice}>{getDisplayPrice(key)}</Text>
-                {packagesLoaded && packagesByType[key] ? (
-                  <TouchableOpacity
-                    style={[
-                      profileStyles.packageGetButton,
-                      isPurchasing && profileStyles.packageGetButtonDisabled,
-                    ]}
-                    onPress={() => handleGetIt(key)}
-                    disabled={isPurchasing}
-                    activeOpacity={0.7}
-                  >
-                    {purchasingPack === key ? (
-                      <ActivityIndicator size="small" color={colors.text.black} />
-                    ) : (
-                      <Text style={profileStyles.packageGetButtonText}>Get it</Text>
-                    )}
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            ))}
+          <View style={profileStyles.pricingPackagesList}>
+            {packageRows.map((row, index) => {
+              const isBestValue = row.key === bestValueKey;
+              const rowPrice = row.pkg ? getDisplayPrice(row.key) : row.displayPrice;
+
+              return (
+                <View
+                  key={row.key}
+                  style={[
+                    profileStyles.pricingPackageRow,
+                    index < packageRows.length - 1 && profileStyles.pricingPackageRowDivider,
+                    isBestValue && profileStyles.pricingPackageRowBestValue,
+                  ]}
+                >
+                  <View style={profileStyles.pricingPackageInfo}>
+                    <View style={profileStyles.pricingPackageTitleRow}>
+                      <Text style={profileStyles.packageScans}>{row.scans} scans</Text>
+                      {isBestValue ? (
+                        <View style={profileStyles.bestValueBadge}>
+                          <Text style={profileStyles.bestValueBadgeText}>Best Value</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={profileStyles.packagePrice}>{rowPrice}</Text>
+                  </View>
+
+                  {packagesLoaded && row.pkg ? (
+                    <TouchableOpacity
+                      style={[
+                        profileStyles.packageGetButton,
+                        profileStyles.packageGetButtonRow,
+                        isPurchasing && profileStyles.packageGetButtonDisabled,
+                      ]}
+                      onPress={() => handleGetIt(row.key)}
+                      disabled={isPurchasing}
+                      activeOpacity={0.7}
+                    >
+                      {purchasingPack === row.key ? (
+                        <ActivityIndicator size="small" color={colors.text.black} />
+                      ) : (
+                        <Text style={profileStyles.packageGetButtonText}>Get it</Text>
+                      )}
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              );
+            })}
           </View>
         </View>
         <Text style={profileStyles.upgradeTerms}>

@@ -869,9 +869,54 @@ export const profileStyles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  pricingPackagesList: {
+    width: '100%',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
   pricingPackage: {
     alignItems: 'center',
     flex: 1,
+  },
+  pricingPackageRow: {
+    minHeight: 74,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 2,
+  },
+  pricingPackageRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  pricingPackageRowBestValue: {
+    backgroundColor: 'rgba(240, 177, 0, 0.12)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+  },
+  pricingPackageInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  pricingPackageTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  bestValueBadge: {
+    backgroundColor: colors.accent.gold,
+    borderRadius: 999,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  bestValueBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.text.black,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   packageScans: {
     fontSize: 14,
@@ -894,6 +939,11 @@ export const profileStyles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 70,
     minHeight: 30,
+  },
+  packageGetButtonRow: {
+    marginTop: 0,
+    alignSelf: 'center',
+    minWidth: 84,
   },
   packageGetButtonText: {
     fontSize: 13,

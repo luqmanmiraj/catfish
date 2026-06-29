@@ -3,7 +3,7 @@
     "name": "Catfish Crasher: Photo Check",
     "slug": "catfish",
     "scheme": "com.anonymous.catfish",
-    "version": "1.0.18",
+    "version": "1.0.20",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "25",
+      "buildNumber": "27",
       "infoPlist": {
         "NSCameraUsageDescription": "Access for camera to pass photo/video identification",
         "NSPhotoLibraryUsageDescription": "Access to save analyzed images to your photo library",

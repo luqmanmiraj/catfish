@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# project overview docs (local reference)
+CATFISH-CRASHER-OVERVIEW.md
+CATFISH-CRASHER-OVERVIEW.pdf
